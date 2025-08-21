@@ -1,26 +1,32 @@
-cat > apps/tables/apps.py << 'EOF'
-from django.apps import AppConfig
+# Create/update __init__.py files
+echo "default_app_config = 'apps.tables.apps.TablesConfig'" > apps/tables/__init__.py
+echo "default_app_config = 'apps.staff.apps.StaffConfig'" > apps/staff/__init__.py
+echo "default_app_config = 'apps.inventory.apps.InventoryConfig'" > apps/inventory/__init__.py
 
-class TablesConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.tables'
-    verbose_name = 'Table Management'
-EOF
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
 
-cat > apps/staff/apps.py << 'EOF'
-from django.apps import AppConfig
-
-class StaffConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.staff'
-    verbose_name = 'Staff Management'
-EOF
-
-cat > apps/inventory/apps.py << 'EOF'
-from django.apps import AppConfig
-
-class InventoryConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.inventory'
-    verbose_name = 'Inventory Management'
-EOF
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'corsheaders',
+    'channels',
+    'django_extensions',
+    
+    # Existing apps
+    'apps.users',
+    'apps.menu',
+    'apps.rooms',
+    'apps.bills',
+    'apps.notifications',
+    
+    # New apps - Make sure these are exactly like this:
+    'apps.tables',
+    'apps.staff',
+    'apps.inventory',
+]
