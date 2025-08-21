@@ -1,13 +1,97 @@
-ubuntu@hotel-management-server:~$ cat /etc/systemd/system/gunicorn.service
-[Unit]
-Description=gunicorn daemon for hotel-management-backend
-After=network.target
+COMMAND      PID   USER   FD   TYPE   DEVICE SIZE/OFF NODE NAME
+gunicorn 1612375 ubuntu    5u  IPv4 15786545      0t0  TCP localhost:8000 (LISTEN)
+gunicorn 1612378 ubuntu    5u  IPv4 15786545      0t0  TCP localhost:8000 (LISTEN)
+gunicorn 1612379 ubuntu    5u  IPv4 15786545      0t0  TCP localhost:8000 (LISTEN)
+gunicorn 1612380 ubuntu    5u  IPv4 15786545      0t0  TCP localhost:8000 (LISTEN)
+ubuntu@hotel-management-server:~$ sudo systemctl status gunicorn
+● gunicorn.service - gunicorn daemon for hotel-management-backend
+     Loaded: loaded (/etc/systemd/system/gunicorn.service; disabled; vendor preset: enabled)
+     Active: active (running) since Tue 2025-07-15 05:29:23 UTC; 1 month 6 days ago
+   Main PID: 1612375 (gunicorn)
+      Tasks: 4 (limit: 28689)
+     Memory: 223.6M
+        CPU: 6min 43.897s
+     CGroup: /system.slice/gunicorn.service
+             ├─1612375 /home/ubuntu/hotel-management-backend/venv/bin/python3 /home/ubuntu/hotel-management-backend/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 con>
+             ├─1612378 /home/ubuntu/hotel-management-backend/venv/bin/python3 /home/ubuntu/hotel-management-backend/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 con>
+             ├─1612379 /home/ubuntu/hotel-management-backend/venv/bin/python3 /home/ubuntu/hotel-management-backend/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 con>
+             └─1612380 /home/ubuntu/hotel-management-backend/venv/bin/python3 /home/ubuntu/hotel-management-backend/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 con>
 
-[Service]
-User=ubuntu
-Group=www-data
-WorkingDirectory=/home/ubuntu/hotel-management-backend
-ExecStart=/home/ubuntu/hotel-management-backend/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 config.wsgi:application
+Aug 18 16:26:47 hotel-management-server gunicorn[1612378]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 18 16:30:34 hotel-management-server gunicorn[1612379]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 18 20:08:37 hotel-management-server gunicorn[1612379]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 18 21:15:51 hotel-management-server gunicorn[1612378]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 19 10:59:24 hotel-management-server gunicorn[1612380]: Not Found: /api/timelion/run
+Aug 19 18:58:32 hotel-management-server gunicorn[1612378]: Not Found: /api/me
+Aug 20 06:01:19 hotel-management-server gunicorn[1612380]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 20 17:03:35 hotel-management-server gunicorn[1612378]: Not Found: /api/experimental/test
+Aug 20 17:03:41 hotel-management-server gunicorn[1612378]: Not Found: /api/experimental/dags/example_trigger_target_dag/paused/false
+Aug 20 17:03:46 hotel-management-server gunicorn[1612379]: Not Found: /api/experimental/dags/example_trigger_target_dag/dag_runs
+lines 1-23/23 (END)
+ubuntu@hotel-management-server:~$ sudo ss -tulpn | grep LISTEN | grep 8000
+tcp   LISTEN 0      2048           127.0.0.1:8000      0.0.0.0:*    users:(("gunicorn",pid=1612380,fd=5),("gunicorn",pid=1612379,fd=5),("gunicorn",pid=1612378,fd=5),("gunicorn",pid=1612375,fd=5))
+ubuntu@hotel-management-server:~$ curl -I http://127.0.0.1:8000/
+HTTP/1.1 404 Not Found
+Server: gunicorn
+Date: Thu, 21 Aug 2025 08:31:46 GMT
+Connection: close
+Content-Type: text/html; charset=utf-8
+X-Frame-Options: DENY
+Content-Length: 3012
+X-Content-Type-Options: nosniff
+Referrer-Policy: same-origin
+Cross-Origin-Opener-Policy: same-origin
+Vary: origin
 
-[Install]
-WantedBy=multi-user.target
+ubuntu@hotel-management-server:~$ sudo journalctl -u gunicorn --no-pager | tail -n 50
+Aug 11 18:03:07 hotel-management-server gunicorn[1612379]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 12 05:49:11 hotel-management-server gunicorn[1612379]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 12 06:24:00 hotel-management-server gunicorn[1612380]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 12 09:15:13 hotel-management-server gunicorn[1612378]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 12 17:47:01 hotel-management-server gunicorn[1612379]: Not Found: /api/shared/config/config.env
+Aug 12 17:47:02 hotel-management-server gunicorn[1612379]: Not Found: /api/shared/config.env
+Aug 12 17:47:03 hotel-management-server gunicorn[1612380]: Not Found: /api/config.env
+Aug 12 17:47:12 hotel-management-server gunicorn[1612380]: Not Found: /api/objects/codes.php.save
+Aug 12 17:47:19 hotel-management-server gunicorn[1612378]: Not Found: /api/config/config.yml
+Aug 13 03:02:32 hotel-management-server gunicorn[1612378]: Not Found: /api/external/7.0/system.System.get_infos
+Aug 13 04:54:34 hotel-management-server gunicorn[1612380]: Not Found: /api/shared/config/config.env
+Aug 13 04:54:34 hotel-management-server gunicorn[1612380]: Not Found: /api/shared/config.env
+Aug 13 04:54:36 hotel-management-server gunicorn[1612378]: Not Found: /api/config.env
+Aug 13 04:54:52 hotel-management-server gunicorn[1612380]: Not Found: /api/objects/codes.php.save
+Aug 13 04:54:57 hotel-management-server gunicorn[1612379]: Not Found: /api/config/config.yml
+Aug 13 05:40:15 hotel-management-server gunicorn[1612378]: Not Found: /api/
+Aug 13 05:40:18 hotel-management-server gunicorn[1612379]: Not Found: /api/login
+Aug 13 05:40:36 hotel-management-server gunicorn[1612379]: Not Found: /api/info
+Aug 13 05:40:46 hotel-management-server gunicorn[1612380]: Not Found: /api/config.php
+Aug 13 15:03:16 hotel-management-server gunicorn[1612380]: Not Found: /api/v1/users
+Aug 13 15:03:16 hotel-management-server gunicorn[1612380]: Not Found: /api/users
+Aug 13 15:03:16 hotel-management-server gunicorn[1612380]: Not Found: /api/v1/auth
+Aug 13 15:03:17 hotel-management-server gunicorn[1612378]: Not Found: /api/login
+Aug 13 15:03:17 hotel-management-server gunicorn[1612378]: Not Found: /api/register
+Aug 13 15:03:17 hotel-management-server gunicorn[1612378]: Not Found: /api/v1/profile
+Aug 13 15:03:17 hotel-management-server gunicorn[1612380]: Not Found: /api/admin
+Aug 14 04:28:57 hotel-management-server gunicorn[1612380]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 14 06:16:38 hotel-management-server gunicorn[1612379]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 15 18:35:10 hotel-management-server gunicorn[1612379]: Not Found: /api/datas.py
+Aug 15 18:35:21 hotel-management-server gunicorn[1612380]: Not Found: /api/init.php
+Aug 15 18:35:29 hotel-management-server gunicorn[1612378]: Not Found: /api/swagger-ui.html
+Aug 15 18:35:42 hotel-management-server gunicorn[1612380]: Not Found: /api/wp-content/themes/ngyn/functions.php
+Aug 15 18:35:47 hotel-management-server gunicorn[1612380]: Not Found: /api/v9/global.php
+Aug 15 18:35:56 hotel-management-server gunicorn[1612380]: Not Found: /api/app/helpers/email_helper.php
+Aug 15 18:36:14 hotel-management-server gunicorn[1612380]: Not Found: /api/SendEmail.php
+Aug 15 18:36:14 hotel-management-server gunicorn[1612378]: Not Found: /api/classes/Waiter.php
+Aug 16 18:38:11 hotel-management-server gunicorn[1612379]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 17 00:17:09 hotel-management-server gunicorn[1612378]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 17 23:59:22 hotel-management-server gunicorn[1612378]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 18 16:26:47 hotel-management-server gunicorn[1612378]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 18 16:30:34 hotel-management-server gunicorn[1612379]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 18 20:08:37 hotel-management-server gunicorn[1612379]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 18 21:15:51 hotel-management-server gunicorn[1612378]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 19 10:59:24 hotel-management-server gunicorn[1612380]: Not Found: /api/timelion/run
+Aug 19 18:58:32 hotel-management-server gunicorn[1612378]: Not Found: /api/me
+Aug 20 06:01:19 hotel-management-server gunicorn[1612380]: Not Found: /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+Aug 20 17:03:35 hotel-management-server gunicorn[1612378]: Not Found: /api/experimental/test
+Aug 20 17:03:41 hotel-management-server gunicorn[1612378]: Not Found: /api/experimental/dags/example_trigger_target_dag/paused/false
+Aug 20 17:03:46 hotel-management-server gunicorn[1612379]: Not Found: /api/experimental/dags/example_trigger_target_dag/dag_runs
+Aug 21 08:31:46 hotel-management-server gunicorn[1612378]: Not Found: /
+ubuntu@hotel-management-server:~$
