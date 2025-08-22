@@ -1,210 +1,26 @@
-// pages/admin/dashboard.js
+ubuntu@hotel-management-server:~/hotel-management-frontend/pages/admin$ npm run build
 
-import withRoleGuard from '@/utils/withRoleGuard';
-import { useEffect, useState } from "react";
-import axios from "@/utils/axiosInstance";
-import { Bar, Doughnut } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  BarElement,
-  CategoryScale,
-  LinearScale,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import AdminLayout from "@/components/layouts/AdminLayout";
+> hotel-management-frontend@1.0.0 build
+> next build
 
-ChartJS.register(BarElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend);
+ ✓ Linting and checking validity of types
+Failed to compile.
 
-const Dashboard = () => {
-  // Dashboard state
-  const [summary, setSummary] = useState(null);
-  const [bestSellers, setBestSellers] = useState([]);
-  const [revenueData, setRevenueData] = useState({ labels: [], data: [] });
+./pages/admin/dashboard.js
+Module not found: Can't resolve '@/utils/withRoleGuard'
 
-  // Inventory state
-  const [inventoryItems, setInventoryItems] = useState([]);
-  const [inventoryCategories, setInventoryCategories] = useState([]);
-  const [inventoryStats, setInventoryStats] = useState({});
-  
-  // Active tab: 'dashboard' or 'inventory'
-  const [activeTab, setActiveTab] = useState('dashboard');
+https://nextjs.org/docs/messages/module-not-found
 
-  useEffect(() => {
-    fetchDashboardData();
-    fetchInventoryData();
-  }, []);
+./pages/admin/inventory-categories.js
+Module not found: Can't resolve '@/utils/withRoleGuard'
 
-  const fetchDashboardData = async () => {
-    try {
-      const [summaryRes, bestRes, revenueRes] = await Promise.all([
-        axios.get("/api/admin/dashboard/summary/"),
-        axios.get("/api/admin/dashboard/best-selling/"),
-        axios.get("/api/admin/dashboard/revenue/"),
-      ]);
-      setSummary(summaryRes.data);
-      setBestSellers(bestRes.data.items);
-      setRevenueData({
-        labels: revenueRes.data.labels,
-        data: revenueRes.data.values,
-      });
-    } catch (err) {
-      console.error("Dashboard fetch error:", err);
-    }
-  };
+https://nextjs.org/docs/messages/module-not-found
 
-  const fetchInventoryData = async () => {
-    try {
-      const [itemsRes, categoriesRes, statsRes] = await Promise.all([
-        axios.get("/api/inventory/items/"),
-        axios.get("/api/inventory/categories/"),
-        axios.get("/api/inventory/items/dashboard_summary/").catch(() => ({ data: {} }))
-      ]);
-      setInventoryItems(itemsRes.data.results || itemsRes.data || []);
-      setInventoryCategories(categoriesRes.data.results || categoriesRes.data || []);
-      setInventoryStats(statsRes.data || {});
-    } catch (err) {
-      console.error("Inventory fetch error:", err);
-    }
-  };
+./pages/admin/inventory.js
+Module not found: Can't resolve '@/utils/withRoleGuard'
 
-  const getCategoryName = (id) => {
-    const cat = inventoryCategories.find(c => c.id === id);
-    return cat ? cat.name : 'N/A';
-  };
+https://nextjs.org/docs/messages/module-not-found
 
-  const getStockStatus = (stock, min) => {
-    if (stock === 0) return { text: 'स्टॉक खत्म', color: 'bg-red-100 text-red-800' };
-    if (stock <= min) return { text: 'कम स्टॉक', color: 'bg-yellow-100 text-yellow-800' };
-    return { text: 'स्टॉक में', color: 'bg-green-100 text-green-800' };
-  };
 
-  const Card = ({ title, titleHi, value, color }) => (
-    <div className="bg-white p-4 rounded-xl shadow text-center">
-      <h3 className="text-gray-500">{title} / {titleHi}</h3>
-      <p className={`text-2xl font-bold mt-2 ${color || 'text-gray-900'}`}>{value}</p>
-    </div>
-  );
-
-  return (
-    <AdminLayout>
-      <div className="p-4">
-        {/* Tabs */}
-        <div className="flex space-x-4 mb-6 border-b">
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`px-4 py-2 font-medium ${
-              activeTab === 'dashboard'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            ߓ Dashboard / डैशबोर्ड
-          </button>
-          <button
-            onClick={() => setActiveTab('inventory')}
-            className={`px-4 py-2 font-medium ${
-              activeTab === 'inventory'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            ߓ Inventory / इन्वेंट्री
-          </button>
-        </div>
-
-        {activeTab === 'dashboard' && (
-          <>
-            <h1 className="text-2xl font-semibold mb-4">Admin Dashboard / एडमिन डैशबोर्ड</h1>
-            {summary && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <Card title="Total Sales Today" titleHi="आज की कुल बिक्री" value={`₹${summary.sales_today}`} />
-                <Card title="Total Orders" titleHi="कुल ऑर्डर" value={summary.total_orders} />
-                <Card title="Failed Payments" titleHi="असफल भुगतान" value={summary.failed_payments} />
-              </div>
-            )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl p-4 shadow">
-                <h2 className="text-lg font-semibold mb-2">Revenue Overview / राजस्व अवलोकन</h2>
-                <Bar
-                  data={{ labels: revenueData.labels, datasets: [{ label: "₹ Revenue", data: revenueData.data, backgroundColor: "rgba(59, 130, 246, 0.6)" }] }}
-                  options={{ responsive: true }}
-                />
-              </div>
-              <div className="bg-white rounded-xl p-4 shadow">
-                <h2 className="text-lg font-semibold mb-2">Best Selling Items / बेस्ट सेलिंग आइटम</h2>
-                <Doughnut
-                  data={{
-                    labels: bestSellers.map(i => i.name),
-                    datasets: [{
-                      data: bestSellers.map(i => i.count),
-                      backgroundColor: ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6"],
-                    }],
-                  }}
-                />
-              </div>
-            </div>
-          </>
-        )}
-
-        {activeTab === 'inventory' && (
-          <>
-            <h1 className="text-2xl font-semibold mb-4">Inventory Management / इन्वेंट्री प्रबंधन</h1>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-              <Card title="Total Items" titleHi="कुल आइटम" value={inventoryStats.total_items || inventoryItems.length} />
-              <Card title="Categories" titleHi="श्रेणियाँ" value={inventoryStats.total_categories || inventoryCategories.length} />
-              <Card title="Low Stock" titleHi="कम स्टॉक" value={inventoryStats.low_stock_count || 0} color="text-yellow-600" />
-              <Card title="Out of Stock" titleHi="स्टॉक खत्म" value={inventoryStats.out_of_stock_count || 0} color="text-red-600" />
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Inventory Items / आइटम</h2>
-                <div className="flex space-x-2">
-                  <button className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm font-medium">
-                    ߓ Categories / श्रेणियाँ
-                  </button>
-                  <button className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium">
-                    ➕ Add Item / नया आइटम
-                  </button>
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50"><tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name / नाम</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category / श्रेणी</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Stock / वर्तमान स्टॉक</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min Level / न्यूनतम स्तर</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status / स्थिति</th>
-                  </tr></thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {inventoryItems.map(item => {
-                      const status = getStockStatus(item.current_stock||0, item.min_stock_level||0);
-                      return (
-                        <tr key={item.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                            <div className="text-sm text-gray-500">SKU: {item.sku}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getCategoryName(item.category)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.current_stock} {item.unit}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.min_stock_level} {item.unit}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${status.color}`}>{status.text}</span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </AdminLayout>
-  );
-};
-
-export default withRoleGuard(Dashboard, ['admin']);
+> Build failed because of webpack errors
+ubuntu@hotel-management-server:~/hotel-management-frontend/pages/admin$
