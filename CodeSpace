@@ -1,76 +1,45 @@
-ubuntu@hotel-management-server:~/hotel-management-frontend$ ls -l
-total 204
-drwxrwxr-x   2 ubuntu ubuntu   4096 Jul  2 15:54 components
-drwxrwxr-x   2 ubuntu ubuntu   4096 Jul  3 07:27 context
--rwxrwxr-x   1 ubuntu ubuntu    360 Apr  8 07:34 ecosystem.config.js
-drwxrwxr-x   2 ubuntu ubuntu   4096 Jul  3 07:27 hoc
--rw-rw-r--   1 ubuntu ubuntu     94 Apr 10 13:16 jsconfig.json
--rwxrwxr-x   1 ubuntu ubuntu    201 Apr  8 07:34 next-env.d.ts
--rwxrwxr-x   1 ubuntu ubuntu   1637 Apr 23 06:46 next.config.js
--rw-rw-r--   1 ubuntu ubuntu    432 Apr  8 07:34 next.log
-drwxr-xr-x 199 ubuntu ubuntu  12288 May 21 12:08 node_modules
--rwxrwxr-x   1 ubuntu ubuntu 124940 May 21 12:08 package-lock.json
--rwxrwxr-x   1 ubuntu ubuntu   1239 May 21 12:08 package.json
-drwxr-xr-x   5 ubuntu ubuntu   4096 Jul  2 14:33 pages
--rwxrwxr-x   1 ubuntu ubuntu     84 Apr  8 07:34 postcss.config.js
-drwxr-xr-x   2 ubuntu ubuntu   4096 May 17 05:15 public
--rwxrwxr-x   1 ubuntu ubuntu     65 Apr 15 15:40 start.sh
-drwxr-xr-x   2 ubuntu ubuntu   4096 Apr  8 07:34 styles
--rwxrwxr-x   1 ubuntu ubuntu    196 Apr  8 07:34 tailwind.config.js
--rwxrwxr-x   1 ubuntu ubuntu    585 Apr 10 13:20 tsconfig.json
-drwxr-xr-x   2 ubuntu ubuntu   4096 Jul  3 07:28 utils
-ubuntu@hotel-management-server:~/hotel-management-frontend$ ls -l components context utils hoc
-components:
-total 24
--rw-rw-r-- 1 ubuntu ubuntu 1339 Jun  3 09:20 DashboardLayout.js
--rw-rw-r-- 1 ubuntu ubuntu 8532 Jun 30 09:53 RestaurantBillingForm.js
--rw-rw-r-- 1 ubuntu ubuntu 6080 Jun 30 11:53 RoomBillingForm.js
+ubuntu@hotel-management-server:~/hotel-management-frontend$ cat start.sh
+#!/bin/bash
+NODE_ENV=production node .next/standalone/server.js
 
-context:
-total 8
--rw-rw-r-- 1 ubuntu ubuntu 4067 Jul  3 07:27 AuthContext.js
--rw-rw-r-- 1 ubuntu ubuntu  526 Jun  3 09:08 LanguageContext.js
+ubuntu@hotel-management-server:~/hotel-management-frontend$ npm run build
 
-hoc:
-total 4
--rw-rw-r-- 1 ubuntu ubuntu 945 Jul  3 07:27 withRoleGuard.js
+> hotel-management-frontend@1.0.0 build
+> next build
 
-utils:
-total 12
--rwxrwxr-x 1 ubuntu ubuntu 298 Apr 10 16:00 api.js
--rw-rw-r-- 1 ubuntu ubuntu 202 Apr  8 16:11 axios.js
--rw-rw-r-- 1 ubuntu ubuntu 378 Jul  3 07:28 axiosInstance.js
-ubuntu@hotel-management-server:~/hotel-management-frontend$ cat utils/api.js utils/axios.js utils/axiosInstance.js
-import axios from './axiosInstance';
+ ✓ Linting and checking validity of types
+Failed to compile.
 
-export const fetchOrderSummary = () => axios.get('/api/admin/dashboard/summary/');
-export const fetchSalesOverview = () => axios.get('/api/admin/dashboard/revenue/');
-export const fetchBestSellingItems = () => axios.get('/api/admin/dashboard/best-selling/');
+./pages/inventory/alerts.js
+Module not found: Can't resolve '@heroicons/react/24/outline'
 
-import axios from 'axios';
+https://nextjs.org/docs/messages/module-not-found
 
-const instance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://your-backend-domain/api',
-  withCredentials: true,
-});
+./pages/inventory/categories.js
+Module not found: Can't resolve '@heroicons/react/24/outline'
 
-export default instance;
+https://nextjs.org/docs/messages/module-not-found
 
-import axios from "axios";
+./pages/inventory/index.js
+Module not found: Can't resolve '@heroicons/react/24/outline'
 
-const instance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
-});
+https://nextjs.org/docs/messages/module-not-found
 
-instance.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = sessionStorage.getItem("access");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  }
-  return config;
-});
+./pages/inventory/purchase-orders.js
+Module not found: Can't resolve '@heroicons/react/24/outline'
 
-export default instance;
+https://nextjs.org/docs/messages/module-not-found
+
+./pages/inventory/suppliers.js
+Module not found: Can't resolve '@heroicons/react/24/outline'
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+> Build failed because of webpack errors
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 11.5.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.5.2
+npm notice To update run: npm install -g npm@11.5.2
+npm notice
 ubuntu@hotel-management-server:~/hotel-management-frontend$
