@@ -1,6 +1,30 @@
-{
-  name: 'Inventory',  
-  href: '/inventory',
-  icon: CubeIcon,
-  description: 'Manage hotel inventory'
-}
+   
+    # ߔ ADD THESE MISSING ROUTES:
+    path('api/inventory/', include('apps.inventory.urls')),
+    path('api/staff/', include('apps.staff.urls')),
+    path('api/tables/', include('apps.tables.urls')),
+
+
+
+# 2. Update inventory permissions
+cp inventory-permissions-final.py apps/inventory/permissions.py
+
+# 3. Restart backend services
+python manage.py collectstatic --noinput
+sudo systemctl restart gunicorn
+sudo systemctl restart nginx
+
+cd ~/hotel-management-frontend
+
+# 1. Update AdminLayout with proper navigation
+cp admin-layout-complete.js components/layouts/AdminLayout.js
+
+# 2. Create inventory pages
+cp admin-inventory-main-real.js pages/admin/inventory.js
+cp admin-inventory-categories-real.js pages/admin/inventory-categories.js
+cp admin-inventory-suppliers-only.js pages/admin/inventory-suppliers.js
+cp admin-inventory-alerts-only.js pages/admin/inventory-alerts.js
+
+# 3. Build and deploy
+npm run build
+pm2 restart all
