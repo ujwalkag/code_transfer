@@ -1,119 +1,171 @@
-ubuntu@hotel-management-server:~$ cd hotel-management-backend
-ubuntu@hotel-management-server:~/hotel-management-backend$ vi config/urls.py
-ubuntu@hotel-management-server:~/hotel-management-backend$ ls -l
-total 108
--rwxr-xr-x  1 ubuntu www-data   389 May  6 15:28  README.md
--rw-rw-r--  1 ubuntu ubuntu     495 May 13 05:04 '\'
-drwxr-xr-x 11 ubuntu www-data  4096 Aug 21 06:41  apps
-drwxr-xr-x  3 ubuntu www-data  4096 Aug 22 07:31  config
-drwxr-xr-x  2 ubuntu www-data  4096 Mar 17 14:48  docker
--rw-rw-r--  1 ubuntu ubuntu   45534 May 20 06:43  hotel_db_backup.sql
-drwxr-xr-x  2 ubuntu www-data  4096 Mar 18 07:23  logs
--rwxr-xr-x  1 ubuntu www-data   660 May  7 07:38  manage.py
-drwxr-xr-x  3 ubuntu www-data  4096 May 26 14:50  media
-drwxrwxr-x  4 ubuntu ubuntu    4096 May  6 05:52  mediafiles
--rwxr-xr-x  1 ubuntu www-data  1215 May  6 05:54  requirements.txt
-drwxr-xr-x  2 ubuntu www-data  4096 Mar 17 14:48  scripts
-drwxr-xr-x  2 ubuntu www-data  4096 Mar 17 14:48  static
-drwxrwxrwx  6 ubuntu ubuntu    4096 Apr 10 11:54  staticfiles
-drwxr-xr-x  2 ubuntu www-data  4096 Mar 17 14:48  styles
-drwxrwxr-x  6 ubuntu ubuntu    4096 May 20 09:31  venv
-ubuntu@hotel-management-server:~/hotel-management-backend$ cp inventory-permissions-final.py apps/inventory/permissions.py
-cp: cannot stat 'inventory-permissions-final.py': No such file or directory
-ubuntu@hotel-management-server:~/hotel-management-backend$ source venv/bin/activate
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ python manage.py collectstatic --noinput
-sudo systemctl restart gunicorn
-sudo systemctl restart nginx
+# Create the AdminLayout with navigation that your dashboard already expects
+cat > components/layouts/AdminLayout.js << 'EOF'
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
 
-0 static files copied to '/home/ubuntu/hotel-management-backend/staticfiles', 163 unmodified.
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ ls -l
-total 108
--rwxr-xr-x  1 ubuntu www-data   389 May  6 15:28  README.md
--rw-rw-r--  1 ubuntu ubuntu     495 May 13 05:04 '\'
-drwxr-xr-x 11 ubuntu www-data  4096 Aug 21 06:41  apps
-drwxr-xr-x  3 ubuntu www-data  4096 Aug 22 07:31  config
-drwxr-xr-x  2 ubuntu www-data  4096 Mar 17 14:48  docker
--rw-rw-r--  1 ubuntu ubuntu   45534 May 20 06:43  hotel_db_backup.sql
-drwxr-xr-x  2 ubuntu www-data  4096 Mar 18 07:23  logs
--rwxr-xr-x  1 ubuntu www-data   660 May  7 07:38  manage.py
-drwxr-xr-x  3 ubuntu www-data  4096 May 26 14:50  media
-drwxrwxr-x  4 ubuntu ubuntu    4096 May  6 05:52  mediafiles
--rwxr-xr-x  1 ubuntu www-data  1215 May  6 05:54  requirements.txt
-drwxr-xr-x  2 ubuntu www-data  4096 Mar 17 14:48  scripts
-drwxr-xr-x  2 ubuntu www-data  4096 Mar 17 14:48  static
-drwxrwxrwx  6 ubuntu ubuntu    4096 Apr 10 11:54  staticfiles
-drwxr-xr-x  2 ubuntu www-data  4096 Mar 17 14:48  styles
-drwxrwxr-x  6 ubuntu ubuntu    4096 May 20 09:31  venv
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ cd
-(venv) ubuntu@hotel-management-server:~$ cd hotel-management-backend
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ deactivate
-ubuntu@hotel-management-server:~/hotel-management-backend$ cd
-ubuntu@hotel-management-server:~$ cd hotel-management-frontend
-ubuntu@hotel-management-server:~/hotel-management-frontend$ cd components
-ubuntu@hotel-management-server:~/hotel-management-frontend/components$ ls -l
-total 28
--rw-rw-r-- 1 ubuntu ubuntu    0 Aug 21 13:22 CategoryModal.js
--rw-rw-r-- 1 ubuntu ubuntu 1339 Jun  3 09:20 DashboardLayout.js
--rw-rw-r-- 1 ubuntu ubuntu    0 Aug 21 13:22 ItemForm.js
--rw-rw-r-- 1 ubuntu ubuntu    0 Aug 21 13:22 ItemTable.js
--rw-rw-r-- 1 ubuntu ubuntu 8532 Jun 30 09:53 RestaurantBillingForm.js
--rw-rw-r-- 1 ubuntu ubuntu 6080 Jun 30 11:53 RoomBillingForm.js
--rw-rw-r-- 1 ubuntu ubuntu    0 Aug 21 13:22 StockAlert.js
-drwxrwxr-x 2 ubuntu ubuntu 4096 Aug 21 13:41 inventory
-ubuntu@hotel-management-server:~/hotel-management-frontend/components$ ls -l inventory
-total 28
--rw-rw-r-- 1 ubuntu ubuntu  3523 Aug 21 13:37 InventoryLayout.js
--rw-rw-r-- 1 ubuntu ubuntu 14592 Aug 21 13:38 ItemForm.js
--rw-rw-r-- 1 ubuntu ubuntu  7706 Aug 21 13:41 ItemTable.js
-ubuntu@hotel-management-server:~/hotel-management-frontend/components$ cd
-ubuntu@hotel-management-server:~$ cd hotel-management-frontend
-ubuntu@hotel-management-server:~/hotel-management-frontend$ cd pages
-ubuntu@hotel-management-server:~/hotel-management-frontend/pages$ ls -l
-total 60
--rw-rw-r-- 1 ubuntu ubuntu  341 May 21 06:39 403.js
--rw-rw-r-- 1 ubuntu ubuntu  350 May 21 06:40 404.js
--rwxrwxr-x 1 ubuntu ubuntu  495 Jun  3 09:16 _app.js
-drwxrwxr-x 2 ubuntu ubuntu 4096 Aug 22 07:15 admin
-drwxrwxr-x 2 ubuntu ubuntu 4096 May 30 11:41 bills
--rw-rw-r-- 1 ubuntu ubuntu  569 Jul  2 14:32 index.js
-drwxrwxr-x 2 ubuntu ubuntu 4096 Aug 22 05:54 inventory
--rw-rw-r-- 1 ubuntu ubuntu 1463 Jul  2 14:33 login.js
--rwxrwxr-x 1 ubuntu ubuntu 3681 Jun 20 06:20 menu-management.js
--rwxrwxr-x 1 ubuntu ubuntu 1686 Apr  8 07:37 notifications.js
--rwxrwxr-x 1 ubuntu ubuntu 3830 Jun 20 06:21 order-history.js
--rw-rw-r-- 1 ubuntu ubuntu 2702 Apr  8 07:37 services.js
-drwxrwxr-x 2 ubuntu ubuntu 4096 Jul  2 15:02 staff
--rw-rw-r-- 1 ubuntu ubuntu 1366 Apr 23 09:24 staff-dashboard.js
--rw-rw-r-- 1 ubuntu ubuntu  280 Apr 16 07:13 unauthorized.js
-ubuntu@hotel-management-server:~/hotel-management-frontend/pages$ ls -l admin inventory
-admin:
-total 108
--rw-rw-r-- 1 ubuntu ubuntu  2442 May 17 05:49 add-item.js
--rw-rw-r-- 1 ubuntu ubuntu  3157 May 21 12:31 analytics.js
--rw-rw-r-- 1 ubuntu ubuntu  3805 May 30 11:57 bill-history.js
--rw-rw-r-- 1 ubuntu ubuntu  1789 May 17 05:50 billing.js
--rw-rw-r-- 1 ubuntu ubuntu  3378 Aug 22 06:28 dashboard.js
--rw-rw-r-- 1 ubuntu ubuntu   236 May 15 14:35 index.js
--rw-rw-r-- 1 ubuntu ubuntu  9237 Aug 22 07:14 inventory-categories.js
--rw-rw-r-- 1 ubuntu ubuntu 11584 Aug 22 07:15 inventory.js
--rw-rw-r-- 1 ubuntu ubuntu  4076 Jun 30 11:43 manage-categories.js
--rw-rw-r-- 1 ubuntu ubuntu  6125 Jun 30 10:01 manage-menu.js
--rw-rw-r-- 1 ubuntu ubuntu  5906 Jun  3 12:11 manage-rooms.js
--rw-rw-r-- 1 ubuntu ubuntu  3775 Jun  3 11:51 manage-staff.js
--rw-rw-r-- 1 ubuntu ubuntu  4253 May 17 11:20 menu.js
--rw-rw-r-- 1 ubuntu ubuntu  3244 May 17 05:51 orders.js
--rw-rw-r-- 1 ubuntu ubuntu   371 May 21 15:05 restaurant-billing.js
--rw-rw-r-- 1 ubuntu ubuntu  2056 May 26 11:53 restaurant-orders.js
--rw-rw-r-- 1 ubuntu ubuntu   341 May 22 05:08 room-billing.js
--rw-rw-r-- 1 ubuntu ubuntu  2202 May 26 11:53 room-orders.js
--rw-rw-r-- 1 ubuntu ubuntu  5158 May 19 09:39 rooms.js
+export default function AdminLayout({ children }) {
+  const router = useRouter();
+  const [currentPath, setCurrentPath] = useState('');
+  const [user, setUser] = useState(null);
 
-inventory:
-total 112
--rw-rw-r-- 1 ubuntu ubuntu 14571 Aug 21 14:07 alerts.js
--rw-rw-r-- 1 ubuntu ubuntu 13087 Aug 21 14:10 categories.js
--rw-rw-r-- 1 ubuntu ubuntu 30209 Aug 21 14:11 index.js
--rw-rw-r-- 1 ubuntu ubuntu     0 Aug 21 13:21 movements.js
--rw-rw-r-- 1 ubuntu ubuntu 25367 Aug 22 05:54 purchase-orders.js
--rw-rw-r-- 1 ubuntu ubuntu 16827 Aug 21 14:14 suppliers.js
-ubuntu@hotel-management-server:~/hotel-management-frontend/pages$
+  useEffect(() => {
+    setCurrentPath(router.pathname);
+    
+    // Get user from localStorage (same as your existing logic)
+    try {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        setUser(JSON.parse(userData));
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  }, [router.pathname]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    router.push('/login');
+  };
+
+  // Navigation items matching your existing admin pages
+  const navigation = [
+    {
+      name: 'Dashboard',
+      href: '/admin/dashboard',
+      icon: 'ߓ',
+      current: currentPath === '/admin/dashboard'
+    },
+    {
+      name: 'Rooms',
+      href: '/admin/manage-rooms',
+      icon: 'ߏ',
+      current: currentPath === '/admin/manage-rooms'
+    },
+    {
+      name: 'Menu',
+      href: '/admin/manage-menu',
+      icon: 'ߍ️',  
+      current: currentPath === '/admin/manage-menu'
+    },
+    {
+      name: 'Orders',
+      href: '/admin/orders',
+      icon: 'ߓ',
+      current: currentPath === '/admin/orders'
+    },
+    {
+      name: 'Billing',
+      href: '/admin/billing',
+      icon: 'ߒ',
+      current: currentPath === '/admin/billing'
+    },
+    {
+      name: 'Inventory',
+      href: '/admin/inventory',
+      icon: 'ߓ',
+      current: currentPath.startsWith('/admin/inventory'),
+      children: [
+        {
+          name: 'Items',
+          href: '/admin/inventory',
+          icon: 'ߓ',
+          current: currentPath === '/admin/inventory'
+        },
+        {
+          name: 'Categories',
+          href: '/admin/inventory-categories', 
+          icon: 'ߓ',
+          current: currentPath === '/admin/inventory-categories'
+        }
+      ]
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex">
+      {/* Sidebar */}
+      <div className="w-64 bg-white shadow-lg">
+        <div className="flex items-center justify-center h-16 border-b">
+          <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+        </div>
+        
+        <nav className="mt-8">
+          <div className="px-4 space-y-2">
+            {navigation.map((item) => (
+              <div key={item.name}>
+                <Link href={item.href}>
+                  <div className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+                    item.current 
+                      ? 'bg-blue-100 text-blue-700' 
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}>
+                    <span className="mr-3 text-lg">{item.icon}</span>
+                    {item.name}
+                    {item.children && (
+                      <span className="ml-auto">
+                        {item.current ? 'ߓ' : 'ߓ'}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+                
+                {/* Inventory Submenu */}
+                {item.children && item.current && (
+                  <div className="ml-8 mt-2 space-y-1">
+                    {item.children.map((subItem) => (
+                      <Link key={subItem.name} href={subItem.href}>
+                        <div className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+                          subItem.current
+                            ? 'bg-blue-50 text-blue-600' 
+                            : 'text-gray-600 hover:bg-gray-50'
+                        }`}>
+                          <span className="mr-2 text-sm">{subItem.icon}</span>
+                          {subItem.name}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </nav>
+
+        {/* User Info */}
+        <div className="absolute bottom-0 left-0 right-0 w-64 p-4 border-t bg-gray-50">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-medium">
+                  {user?.email?.charAt(0).toUpperCase() || 'A'}
+                </span>
+              </div>
+            </div>
+            <div className="ml-3 flex-1">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {user?.email || 'Admin'}
+              </p>
+              <p className="text-xs text-gray-500">Admin</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="text-gray-400 hover:text-gray-600 ml-2"
+              title="Logout"
+            >
+              ߚ
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content - EXACTLY like your dashboard expects */}
+      <div className="flex-1 overflow-hidden">
+        {children}
+      </div>
+    </div>
+  );
+}
+EOF
