@@ -1,26 +1,40 @@
-ubuntu@hotel-management-server:~/hotel-management-frontend/pages/admin$ npm run build
+ubuntu@hotel-management-server:~/hotel-management-frontend$ npm run build
 
 > hotel-management-frontend@1.0.0 build
 > next build
 
  ✓ Linting and checking validity of types
-Failed to compile.
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Creating an optimized production build
+ ✓ Compiled successfully
+ ✓ Collecting page data
 
-./pages/admin/dashboard.js
-Module not found: Can't resolve '@/utils/withRoleGuard'
+> Build optimization failed: found pages without a React Component as default export in
+pages/admin/movements
+pages/inventory/movements
 
-https://nextjs.org/docs/messages/module-not-found
+See https://nextjs.org/docs/messages/page-without-valid-component for more info.
 
-./pages/admin/inventory-categories.js
-Module not found: Can't resolve '@/utils/withRoleGuard'
+ubuntu@hotel-management-server:~/hotel-management-frontend$ rm -rf pages/admin/movements
+ubuntu@hotel-management-server:~/hotel-management-frontend$ rm -rf pages/inventory/movements
+ubuntu@hotel-management-server:~/hotel-management-frontend$ npm run build
 
-https://nextjs.org/docs/messages/module-not-found
+> hotel-management-frontend@1.0.0 build
+> next build
 
-./pages/admin/inventory.js
-Module not found: Can't resolve '@/utils/withRoleGuard'
+ ✓ Linting and checking validity of types
+ ✓ Creating an optimized production build
+ ✓ Compiled successfully
+ ✓ Collecting page data
 
-https://nextjs.org/docs/messages/module-not-found
+> Build optimization failed: found pages without a React Component as default export in
+pages/admin/movements
+pages/inventory/movements
 
+See https://nextjs.org/docs/messages/page-without-valid-component for more info.
 
-> Build failed because of webpack errors
-ubuntu@hotel-management-server:~/hotel-management-frontend/pages/admin$
+ubuntu@hotel-management-server:~/hotel-management-frontend$ cat pages/admin/movements
+cat: pages/admin/movements: No such file or directory
+ubuntu@hotel-management-server:~/hotel-management-frontend$
