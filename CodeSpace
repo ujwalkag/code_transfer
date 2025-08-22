@@ -1,5 +1,11 @@
-import InventorySection from '../../components/admin/InventorySection';
-        {/* Inventory Section - Loosely Coupled */}
-        <div className="mt-8">
-          <InventorySection />
-        </div>
+Aug 22 08:51:47 hotel-management-server gunicorn[2385256]:     return executor(sql, params, many, context)
+Aug 22 08:51:47 hotel-management-server gunicorn[2385256]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", li>
+Aug 22 08:51:47 hotel-management-server gunicorn[2385256]:     with self.db.wrap_database_errors:
+Aug 22 08:51:47 hotel-management-server gunicorn[2385256]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/utils.py", line 91, in>
+Aug 22 08:51:47 hotel-management-server gunicorn[2385256]:     raise dj_exc_value.with_traceback(traceback) from exc_value
+Aug 22 08:51:47 hotel-management-server gunicorn[2385256]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", li>
+Aug 22 08:51:47 hotel-management-server gunicorn[2385256]:     return self.cursor.execute(sql, params)
+Aug 22 08:51:47 hotel-management-server gunicorn[2385256]: django.db.utils.ProgrammingError: relation "tables_order_item" does not exist
+Aug 22 08:51:47 hotel-management-server gunicorn[2385256]: LINE 1: SELECT "tables_order_item"."id" FROM "tables_order_item" WHE...
+Aug 22 08:51:47 hotel-management-server gunicorn[2385256]:                                              ^
+lines 1-23/23 (END)
