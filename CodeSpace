@@ -1,520 +1,68 @@
 cd ~/hotel-management-backend
 
-# Create complete working serializers
-cat > apps/inventory/serializers.py << 'EOF'
-# apps/inventory/serializers.py - COMPLETE WORKING VERSION
-from rest_framework import serializers
-from .models import (
-    InventoryCategory, InventoryItem, Supplier, 
-    PurchaseOrder, PurchaseOrderItem, StockMovement, LowStockAlert
-)
+# Remove inventory app completely
+rm -rf apps/inventory/
 
-class InventoryCategorySerializer(serializers.ModelSerializer):
-    items_count = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = InventoryCategory
-        fields = ['id', 'name', 'description', 'is_active', 'created_at', 'updated_at', 'items_count']
-        read_only_fields = ['created_at', 'updated_at']
-    
-    def get_items_count(self, obj):
-        return obj.items.filter(is_active=True).count()
+# Remove inventory from INSTALLED_APPS
+sed -i "/apps.inventory/d" config/settings.py
 
-class InventoryItemSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name', read_only=True)
-    stock_status = serializers.CharField(read_only=True)
-    
-    class Meta:
-        model = InventoryItem
-        fields = [
-            'id', 'category', 'category_name', 'name', 'description', 'sku',
-            'unit', 'current_stock', 'min_stock_level', 'max_stock_level',
-            'cost_per_unit', 'selling_price_per_unit', 'supplier_name',
-            'supplier_contact', 'expiry_date', 'location', 'is_active',
-            'stock_status', 'created_at', 'last_updated'
-        ]
-        read_only_fields = ['sku', 'stock_status', 'created_at', 'last_updated']
-    
-    def validate_name(self, value):
-        if not value.strip():
-            raise serializers.ValidationError("Item name is required")
-        return value.strip()
-    
-    def validate_cost_per_unit(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Cost per unit must be greater than 0")
-        return value
+# Remove inventory URLs
+sed -i "/api\/inventory/d" config/urls.py
 
-class SupplierSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Supplier
-        fields = [
-            'id', 'name', 'contact_person', 'phone', 'email',
-            'address', 'gst_number', 'payment_terms', 'is_active',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['created_at', 'updated_at']
-    
-    def validate_name(self, value):
-        if not value.strip():
-            raise serializers.ValidationError("Supplier name is required")
-        return value.strip()
-
-class StockMovementSerializer(serializers.ModelSerializer):
-    item_name = serializers.CharField(source='item.name', read_only=True)
-    
-    class Meta:
-        model = StockMovement
-        fields = [
-            'id', 'item', 'item_name', 'movement_type', 'quantity',
-            'cost_per_unit', 'supplier_name', 'invoice_number',
-            'batch_number', 'expiry_date', 'date', 'reference',
-            'notes', 'created_at'
-        ]
-        read_only_fields = ['created_at']
-
-class LowStockAlertSerializer(serializers.ModelSerializer):
-    item_name = serializers.CharField(source='item.name', read_only=True)
-    
-    class Meta:
-        model = LowStockAlert
-        fields = [
-            'id', 'item', 'item_name', 'alert_date', 'stock_level_at_alert',
-            'threshold_level', 'is_resolved', 'resolved_date', 'notes'
-        ]
-        read_only_fields = ['alert_date']
-
-class PurchaseOrderSerializer(serializers.ModelSerializer):
-    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
-    
-    class Meta:
-        model = PurchaseOrder
-        fields = [
-            'id', 'order_number', 'supplier', 'supplier_name',
-            'order_date', 'expected_delivery_date', 'status',
-            'total_amount', 'notes', 'created_at'
-        ]
-        read_only_fields = ['order_number', 'created_at']
-EOF
-
-
-
-
-cat > apps/inventory/views.py << 'EOF'
-# apps/inventory/views.py - COMPLETE WORKING VERSION
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from django.db.models import Q, Sum, Count, F
-from django.utils import timezone
-from datetime import datetime, timedelta
-import logging
-
-from .models import (
-    InventoryCategory, InventoryItem, Supplier, 
-    PurchaseOrder, StockMovement, LowStockAlert
-)
-from .serializers import (
-    InventoryCategorySerializer, InventoryItemSerializer, SupplierSerializer,
-    PurchaseOrderSerializer, StockMovementSerializer, LowStockAlertSerializer
-)
-from .permissions import IsAdminOnly
-
-logger = logging.getLogger(__name__)
-
-class InventoryCategoryViewSet(viewsets.ModelViewSet):
-    queryset = InventoryCategory.objects.all()
-    serializer_class = InventoryCategorySerializer
-    permission_classes = [IsAuthenticated, IsAdminOnly]
-    
-    def get_queryset(self):
-        queryset = InventoryCategory.objects.all()
-        search = self.request.query_params.get('search', None)
-        if search:
-            queryset = queryset.filter(name__icontains=search)
-        return queryset.order_by('name')
-    
-    def list(self, request, *args, **kwargs):
-        try:
-            queryset = self.get_queryset()
-            serializer = self.get_serializer(queryset, many=True)
-            return Response(serializer.data)
-        except Exception as e:
-            logger.error(f"Error listing categories: {e}")
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    def create(self, request, *args, **kwargs):
-        try:
-            serializer = self.get_serializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            logger.error(f"Error creating category: {e}")
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-class InventoryItemViewSet(viewsets.ModelViewSet):
-    queryset = InventoryItem.objects.all()
-    serializer_class = InventoryItemSerializer
-    permission_classes = [IsAuthenticated, IsAdminOnly]
-    
-    def get_queryset(self):
-        try:
-            queryset = InventoryItem.objects.select_related('category').all()
-            
-            # Search functionality
-            search = self.request.query_params.get('search', None)
-            if search:
-                queryset = queryset.filter(
-                    Q(name__icontains=search) | 
-                    Q(sku__icontains=search) |
-                    Q(description__icontains=search)
-                )
-            
-            # Category filter
-            category = self.request.query_params.get('category', None)
-            if category:
-                queryset = queryset.filter(category_id=category)
-            
-            return queryset.order_by('name')
-        except Exception as e:
-            logger.error(f"Error in InventoryItem get_queryset: {e}")
-            return InventoryItem.objects.none()
-    
-    def list(self, request, *args, **kwargs):
-        try:
-            queryset = self.get_queryset()
-            serializer = self.get_serializer(queryset, many=True)
-            return Response(serializer.data)
-        except Exception as e:
-            logger.error(f"Error listing items: {e}")
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    def create(self, request, *args, **kwargs):
-        try:
-            logger.info(f"Creating item with data: {request.data}")
-            serializer = self.get_serializer(data=request.data)
-            if serializer.is_valid():
-                item = serializer.save()
-                logger.info(f"Item created successfully: {item.id}")
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            else:
-                logger.error(f"Item validation errors: {serializer.errors}")
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            logger.error(f"Error creating item: {e}")
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    @action(detail=False, methods=['get'])
-    def stats(self, request):
-        """Get inventory statistics"""
-        try:
-            total_items = InventoryItem.objects.filter(is_active=True).count()
-            total_categories = InventoryCategory.objects.filter(is_active=True).count()
-            
-            low_stock = InventoryItem.objects.filter(
-                current_stock__lte=F('min_stock_level'),
-                current_stock__gt=0,
-                is_active=True
-            ).count()
-            
-            out_of_stock = InventoryItem.objects.filter(
-                current_stock=0, 
-                is_active=True
-            ).count()
-            
-            # Simple total value calculation
-            total_value = 0
-            for item in InventoryItem.objects.filter(is_active=True):
-                if item.current_stock and item.cost_per_unit:
-                    total_value += float(item.current_stock) * float(item.cost_per_unit)
-            
-            return Response({
-                'total_items': total_items,
-                'total_categories': total_categories,
-                'low_stock_count': low_stock,
-                'out_of_stock_count': out_of_stock,
-                'total_inventory_value': total_value
-            })
-        except Exception as e:
-            logger.error(f"Error getting stats: {e}")
-            return Response({
-                'total_items': 0,
-                'total_categories': 0,
-                'low_stock_count': 0,
-                'out_of_stock_count': 0,
-                'total_inventory_value': 0,
-                'error': str(e)
-            })
-    
-    @action(detail=False, methods=['get'])
-    def dashboard_summary(self, request):
-        """Dashboard summary - alias for stats"""
-        return self.stats(request)
-
-class SupplierViewSet(viewsets.ModelViewSet):
-    queryset = Supplier.objects.all()
-    serializer_class = SupplierSerializer
-    permission_classes = [IsAuthenticated, IsAdminOnly]
-    
-    def get_queryset(self):
-        try:
-            queryset = Supplier.objects.all()
-            search = self.request.query_params.get('search', None)
-            if search:
-                queryset = queryset.filter(
-                    Q(name__icontains=search) |
-                    Q(contact_person__icontains=search) |
-                    Q(phone__icontains=search) |
-                    Q(email__icontains=search)
-                )
-            return queryset.order_by('name')
-        except Exception as e:
-            logger.error(f"Error in Supplier get_queryset: {e}")
-            return Supplier.objects.none()
-    
-    def list(self, request, *args, **kwargs):
-        try:
-            queryset = self.get_queryset()
-            serializer = self.get_serializer(queryset, many=True)
-            logger.info(f"Returning {len(serializer.data)} suppliers")
-            return Response(serializer.data)
-        except Exception as e:
-            logger.error(f"Error listing suppliers: {e}")
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    def create(self, request, *args, **kwargs):
-        try:
-            serializer = self.get_serializer(data=request.data)
-            if serializer.is_valid():
-                supplier = serializer.save()
-                logger.info(f"Supplier created: {supplier.id}")
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            logger.error(f"Error creating supplier: {e}")
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-class LowStockAlertViewSet(viewsets.ModelViewSet):
-    queryset = LowStockAlert.objects.all()
-    serializer_class = LowStockAlertSerializer
-    permission_classes = [IsAuthenticated, IsAdminOnly]
-    
-    def get_queryset(self):
-        queryset = LowStockAlert.objects.select_related('item').all()
-        resolved = self.request.query_params.get('resolved', None)
-        if resolved is not None:
-            is_resolved = resolved.lower() == 'true'
-            queryset = queryset.filter(is_resolved=is_resolved)
-        return queryset.order_by('-alert_date')
-
-class StockMovementViewSet(viewsets.ModelViewSet):
-    queryset = StockMovement.objects.all()
-    serializer_class = StockMovementSerializer
-    permission_classes = [IsAuthenticated, IsAdminOnly]
-
-class PurchaseOrderViewSet(viewsets.ModelViewSet):
-    queryset = PurchaseOrder.objects.all()
-    serializer_class = PurchaseOrderSerializer
-    permission_classes = [IsAuthenticated, IsAdminOnly]
-EOF
-
-
-cat > apps/inventory/urls.py << 'EOF'
-# apps/inventory/urls.py - COMPLETE URL CONFIGURATION
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from . import views
-
-router = DefaultRouter()
-router.register(r'categories', views.InventoryCategoryViewSet, basename='inventorycategory')
-router.register(r'items', views.InventoryItemViewSet, basename='inventoryitem')
-router.register(r'suppliers', views.SupplierViewSet, basename='supplier')
-router.register(r'alerts', views.LowStockAlertViewSet, basename='lowstockalert')
-router.register(r'movements', views.StockMovementViewSet, basename='stockmovement')
-router.register(r'purchase-orders', views.PurchaseOrderViewSet, basename='purchaseorder')
-
-urlpatterns = [
-    path('', include(router.urls)),
-]
-EOF
-
-
-
-
-
-
-cd ~/hotel-management-backend
+# Remove inventory migrations from database
 source venv/bin/activate
-
-# Check if inventory is in INSTALLED_APPS
-python manage.py shell << 'EOF'
-from django.conf import settings
-print("INSTALLED_APPS:", settings.INSTALLED_APPS)
-print("Inventory in INSTALLED_APPS:", any('inventory' in app for app in settings.INSTALLED_APPS))
-EOF
-
-# Make sure migrations exist and are applied
-python manage.py makemigrations inventory
-python manage.py migrate inventory
-
-# Check if tables exist
 python manage.py shell << 'EOF'
 from django.db import connection
 cursor = connection.cursor()
-cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'inventory%';")
-tables = cursor.fetchall()
-print("Inventory tables:", tables)
 
-# Test model access
-from apps.inventory.models import InventoryCategory, InventoryItem, Supplier
-print("Can access models:", True)
-print("Categories count:", InventoryCategory.objects.count())
-print("Items count:", InventoryItem.objects.count())
-print("Suppliers count:", Supplier.objects.count())
+# Drop all inventory tables
+try:
+    cursor.execute("DROP TABLE IF EXISTS inventory_category CASCADE;")
+    cursor.execute("DROP TABLE IF EXISTS inventory_item CASCADE;") 
+    cursor.execute("DROP TABLE IF EXISTS inventory_supplier CASCADE;")
+    cursor.execute("DROP TABLE IF EXISTS inventory_stock_movement CASCADE;")
+    cursor.execute("DROP TABLE IF EXISTS inventory_low_stock_alert CASCADE;")
+    cursor.execute("DROP TABLE IF EXISTS inventory_purchase_order CASCADE;")
+    cursor.execute("DROP TABLE IF EXISTS inventory_purchase_order_item CASCADE;")
+    print("✅ All inventory tables dropped")
+except Exception as e:
+    print(f"Error dropping tables: {e}")
+EOF
+
+# Remove inventory migrations from django_migrations table
+python manage.py shell << 'EOF'
+from django.db import connection
+cursor = connection.cursor()
+try:
+    cursor.execute("DELETE FROM django_migrations WHERE app = 'inventory';")
+    print("✅ Inventory migrations removed")
+except Exception as e:
+    print(f"Error removing migrations: {e}")
 EOF
 
 deactivate
 
+///////////////////////////////
+cd ~/hotel-management-frontend
 
+# Remove all inventory pages
+rm -f pages/admin/inventory*.js
+rm -f pages/inventory*.js
+rm -rf pages/inventory/
 
-# Check and add inventory to settings
-grep -n "apps.inventory" ~/hotel-management-backend/config/settings.py || \
-sed -i "/INSTALLED_APPS = \[/a\\    'apps.inventory'," ~/hotel-management-backend/config/settings.py
+# Remove inventory components
+rm -rf components/inventory/
+rm -f components/admin/InventorySection.js
 
-
-
-
+echo "✅ Frontend inventory files removed"
+//////////////////////////////////////////
+# Restart backend
 cd ~/hotel-management-backend
-source venv/bin/activate
-
-# Apply all migrations
-python manage.py migrate
-
-# Collect static files
-python manage.py collectstatic --noinput
-
-# Restart services
 sudo systemctl restart gunicorn
 sudo systemctl restart nginx
 
-deactivate
-/////////////
+# Restart frontend
+cd ~/hotel-management-frontend  
+pm2 restart all
 
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ python manage.py makemigrations inventory
-python manage.py migrate inventory
-No changes detected in app 'inventory'
-Operations to perform:
-  Apply all migrations: inventory
-Running migrations:
-  No migrations to apply.
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ python manage.py shell << 'EOF'
-from django.db import connection
-cursor = connection.cursor()
-cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'inventory%';")
-tables = cursor.fetchall()
-print("Inventory tables:", tables)
->
->
--bash: warning: here-document at line 348 delimited by end-of-file (wanted `EOF')
-Traceback (most recent call last):
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", line 87, in _execute
-    return self.cursor.execute(sql)
-psycopg2.errors.UndefinedTable: relation "sqlite_master" does not exist
-LINE 1: SELECT name FROM sqlite_master WHERE type='table' AND name L...
-                         ^
-
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
-    main()
-  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
-    execute_from_command_line(sys.argv)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
-    utility.execute()
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 436, in execute
-    self.fetch_command(subcommand).run_from_argv(self.argv)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 412, in run_from_argv
-    self.execute(*args, **cmd_options)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 458, in execute
-    output = self.handle(*args, **options)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/commands/shell.py", line 127, in handle
-    exec(sys.stdin.read(), globals())
-  File "<string>", line 3, in <module>
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", line 102, in execute
-    return super().execute(sql, params)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", line 67, in execute
-    return self._execute_with_wrappers(
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", line 80, in _execute_with_wrappers
-    return executor(sql, params, many, context)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", line 84, in _execute
-    with self.db.wrap_database_errors:
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/utils.py", line 91, in __exit__
-    raise dj_exc_value.with_traceback(traceback) from exc_value
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", line 87, in _execute
-    return self.cursor.execute(sql)
-django.db.utils.ProgrammingError: relation "sqlite_master" does not exist
-LINE 1: SELECT name FROM sqlite_master WHERE type='table' AND name L...
-                         ^
-
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ ^C
-
-
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$  python manage.py shell
-Python 3.10.12 (main, Aug 15 2025, 14:32:43) [GCC 11.4.0] on linux
-Type "help", "copyright", "credits" or "license" for more information.
-(InteractiveConsole)
->>> from django.db import connection
->>> cursor = connection.cursor()
->>> cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'inventory%';")
-Traceback (most recent call last):
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", line 87, in _execute
-    return self.cursor.execute(sql)
-psycopg2.errors.UndefinedTable: relation "sqlite_master" does not exist
-LINE 1: SELECT name FROM sqlite_master WHERE type='table' AND name L...
-                         ^
-
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "<console>", line 1, in <module>
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", line 102, in execute
-    return super().execute(sql, params)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", line 67, in execute
-    return self._execute_with_wrappers(
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", line 80, in _execute_with_wrappers
-    return executor(sql, params, many, context)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", line 84, in _execute
-    with self.db.wrap_database_errors:
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/utils.py", line 91, in __exit__
-    raise dj_exc_value.with_traceback(traceback) from exc_value
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", line 87, in _execute
-    return self.cursor.execute(sql)
-django.db.utils.ProgrammingError: relation "sqlite_master" does not exist
-LINE 1: SELECT name FROM sqlite_master WHERE type='table' AND name L...
-                         ^
-
->>> tables = cursor.fetchall()
-Traceback (most recent call last):
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/utils.py", line 98, in inner
-    return func(*args, **kwargs)
-psycopg2.ProgrammingError: no results to fetch
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "<console>", line 1, in <module>
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/utils.py", line 97, in inner
-    with self:
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/utils.py", line 91, in __exit__
-    raise dj_exc_value.with_traceback(traceback) from exc_value
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/utils.py", line 98, in inner
-    return func(*args, **kwargs)
-django.db.utils.ProgrammingError: no results to fetch
->>> print("Inventory tables:", tables)
-
+echo "✅ All services restarted - Inventory completely removed"
