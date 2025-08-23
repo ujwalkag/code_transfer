@@ -1,225 +1,96 @@
-cd ~/hotel-management-backend
 
-# Fix the views.py with correct imports and endpoints
-cat > apps/inventory/views.py << 'EOF'
-# apps/inventory/views.py - Fixed version
-from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from django.db.models import Q, Sum, Count, F
-from django.utils import timezone
-from datetime import datetime, timedelta
+EAD+ukag@IN-5RZHZH3 MINGW64 ~
+$ ssh -i ~/.ssh/oracle-cloud-key.pem ubuntu@144.24.127.172
+Welcome to Ubuntu 22.04.5 LTS (GNU/Linux 6.8.0-1025-oracle aarch64)
 
-from .models import (
-    InventoryCategory, InventoryItem, Supplier, 
-    PurchaseOrder, PurchaseOrderItem, StockMovement, LowStockAlert
-)
-from .serializers import (
-    InventoryCategorySerializer, InventoryItemSerializer, SupplierSerializer,
-    PurchaseOrderSerializer, PurchaseOrderItemSerializer, StockMovementSerializer,
-    LowStockAlertSerializer
-)
-from .permissions import IsAdminOnly
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
 
-class InventoryCategoryViewSet(viewsets.ModelViewSet):
-    queryset = InventoryCategory.objects.all()
-    serializer_class = InventoryCategorySerializer
-    permission_classes = [IsAdminOnly]  # ߔ ADMIN ONLY
-    
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        search = self.request.query_params.get('search', None)
-        if search:
-            queryset = queryset.filter(name__icontains=search)
-        return queryset.order_by('name')
+ System information as of Sat Aug 23 04:25:45 UTC 2025
 
-class InventoryItemViewSet(viewsets.ModelViewSet):
-    queryset = InventoryItem.objects.all()
-    serializer_class = InventoryItemSerializer
-    permission_classes = [IsAdminOnly]  # ߔ ADMIN ONLY
-    
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        
-        # Search functionality
-        search = self.request.query_params.get('search', None)
-        if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search) | 
-                Q(sku__icontains=search) |
-                Q(description__icontains=search)
-            )
-        
-        # Category filter
-        category = self.request.query_params.get('category', None)
-        if category:
-            queryset = queryset.filter(category_id=category)
-        
-        # Stock status filter
-        stock_status = self.request.query_params.get('stock_status', None)
-        if stock_status == 'low':
-            queryset = queryset.filter(current_stock__lte=F('min_stock_level'))
-        elif stock_status == 'out':
-            queryset = queryset.filter(current_stock=0)
-        elif stock_status == 'over':
-            queryset = queryset.filter(current_stock__gte=F('max_stock_level'))
-        
-        return queryset.select_related('category').order_by('name')
-    
-    @action(detail=False, methods=['get'])
-    def low_stock(self, request):
-        """Get items with low stock"""
-        items = self.queryset.filter(
-            current_stock__lte=F('min_stock_level'),
-            is_active=True
-        )
-        serializer = self.get_serializer(items, many=True)
-        return Response(serializer.data)
-    
-    @action(detail=False, methods=['get'])
-    def stats(self, request):
-        """Get inventory statistics"""
-        try:
-            total_items = self.queryset.filter(is_active=True).count()
-            total_categories = InventoryCategory.objects.filter(is_active=True).count()
-            low_stock = self.queryset.filter(
-                current_stock__lte=F('min_stock_level'),
-                current_stock__gt=0,
-                is_active=True
-            ).count()
-            out_of_stock = self.queryset.filter(current_stock=0, is_active=True).count()
-            total_value = self.queryset.filter(is_active=True).aggregate(
-                total=Sum(F('current_stock') * F('cost_per_unit'))
-            )['total'] or 0
-            
-            return Response({
-                'total_items': total_items,
-                'total_categories': total_categories,
-                'low_stock_count': low_stock,
-                'out_of_stock_count': out_of_stock,
-                'total_inventory_value': float(total_value)
-            })
-        except Exception as e:
-            return Response({
-                'total_items': 0,
-                'total_categories': 0,
-                'low_stock_count': 0,
-                'out_of_stock_count': 0,
-                'total_inventory_value': 0,
-                'error': str(e)
-            })
-    
-    @action(detail=False, methods=['get'])
-    def dashboard_summary(self, request):
-        """Dashboard summary - alias for stats"""
-        return self.stats(request)
+  System load:  0.03               Processes:               208
+  Usage of /:   24.9% of 44.96GB   Users logged in:         1
+  Memory usage: 5%                 IPv4 address for enp0s6: 10.0.0.125
+  Swap usage:   0%
 
-class SupplierViewSet(viewsets.ModelViewSet):
-    queryset = Supplier.objects.all()
-    serializer_class = SupplierSerializer
-    permission_classes = [IsAdminOnly]  # ߔ ADMIN ONLY
-    
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        search = self.request.query_params.get('search', None)
-        if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search) |
-                Q(contact_person__icontains=search) |
-                Q(phone__icontains=search) |
-                Q(email__icontains=search)
-            )
-        return queryset.order_by('name')
+ * Strictly confined Kubernetes makes edge and IoT secure. Learn how MicroK8s
+   just raised the bar for easy, resilient and secure K8s cluster deployment.
 
-class PurchaseOrderViewSet(viewsets.ModelViewSet):
-    queryset = PurchaseOrder.objects.all()
-    serializer_class = PurchaseOrderSerializer
-    permission_classes = [IsAdminOnly]  # ߔ ADMIN ONLY
-    
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        
-        status_filter = self.request.query_params.get('status', None)
-        if status_filter:
-            queryset = queryset.filter(status=status_filter)
-        
-        supplier = self.request.query_params.get('supplier', None)
-        if supplier:
-            queryset = queryset.filter(supplier_id=supplier)
-        
-        return queryset.select_related('supplier').order_by('-created_at')
-    
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+   https://ubuntu.com/engage/secure-kubernetes-at-the-edge
 
-class StockMovementViewSet(viewsets.ModelViewSet):
-    queryset = StockMovement.objects.all()
-    serializer_class = StockMovementSerializer
-    permission_classes = [IsAdminOnly]  # ߔ ADMIN ONLY
-    
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        
-        item = self.request.query_params.get('item', None)
-        if item:
-            queryset = queryset.filter(item_id=item)
-        
-        movement_type = self.request.query_params.get('type', None)
-        if movement_type:
-            queryset = queryset.filter(movement_type=movement_type)
-        
-        # Date range filter
-        date_from = self.request.query_params.get('date_from', None)
-        date_to = self.request.query_params.get('date_to', None)
-        
-        if date_from:
-            queryset = queryset.filter(date__gte=date_from)
-        if date_to:
-            queryset = queryset.filter(date__lte=date_to)
-        
-        return queryset.select_related('item').order_by('-created_at')
-    
-    def perform_create(self, serializer):
-        serializer.save(recorded_by=self.request.user)
+Expanded Security Maintenance for Applications is not enabled.
 
-class LowStockAlertViewSet(viewsets.ModelViewSet):
-    queryset = LowStockAlert.objects.all()
-    serializer_class = LowStockAlertSerializer
-    permission_classes = [IsAdminOnly]  # ߔ ADMIN ONLY
-    
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        
-        resolved = self.request.query_params.get('resolved', None)
-        if resolved is not None:
-            is_resolved = resolved.lower() == 'true'
-            queryset = queryset.filter(is_resolved=is_resolved)
-        
-        return queryset.select_related('item').order_by('-alert_date')
-    
-    @action(detail=True, methods=['post'])
-    def resolve(self, request, pk=None):
-        """Resolve a low stock alert"""
-        alert = self.get_object()
-        alert.resolve_alert(user=request.user, notes=request.data.get('notes', ''))
-        return Response({'status': 'resolved'})
-EOF
+25 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+1 additional security update can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+New release '24.04.3 LTS' available.
+Run 'do-release-upgrade' to upgrade to it.
 
 
+*** System restart required ***
+Last login: Sat Aug 23 04:17:31 2025 from 152.58.59.199
+ubuntu@hotel-management-server:~$ sudo journalctl -u gunicorn -n 50 --no-pager
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/handlers/base.py", line 197, in _get_response
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:     response = wrapped_callback(request, *callback_args, **callback_kwargs)
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/views/decorators/csrf.py", line 56, in wrapper_view
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:     return view_func(*args, **kwargs)
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/rest_framework/viewsets.py", line 125, in view
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:     return self.dispatch(request, *args, **kwargs)
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/rest_framework/views.py", line 515, in dispatch
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:     response = self.handle_exception(exc)
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/rest_framework/views.py", line 475, in handle_exception
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:     self.raise_uncaught_exception(exc)
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/rest_framework/views.py", line 486, in raise_uncaught_exception
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:     raise exc
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/rest_framework/views.py", line 512, in dispatch
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:     response = handler(request, *args, **kwargs)
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:   File "/home/ubuntu/hotel-management-backend/apps/inventory/views.py", line 80, in stats
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]:     current_stock__lte=models.F('min_stock_level'),
+Aug 23 04:06:10 hotel-management-server gunicorn[2390205]: NameError: name 'models' is not defined
+Aug 23 04:18:40 hotel-management-server systemd[1]: Stopping gunicorn daemon for hotel-management-backend...
+Aug 23 04:18:40 hotel-management-server gunicorn[2390205]: [2025-08-23 09:48:40 +0530] [2390205] [INFO] Worker exiting (pid: 2390205)
+Aug 23 04:18:40 hotel-management-server gunicorn[2390206]: [2025-08-23 09:48:40 +0530] [2390206] [INFO] Worker exiting (pid: 2390206)
+Aug 23 04:18:40 hotel-management-server gunicorn[2390205]: ==> WSGI loading...
+Aug 23 04:18:40 hotel-management-server gunicorn[2390205]: ==> Django setup complete!
+Aug 23 04:18:40 hotel-management-server gunicorn[2390205]: ==> WSGI application loaded successfully!
+Aug 23 04:18:40 hotel-management-server gunicorn[2390205]: STAFF DEBUG: admin@hotel.com admin
+Aug 23 04:18:40 hotel-management-server gunicorn[2390205]: STAFF DEBUG: admin@hotel.com admin
+Aug 23 04:18:40 hotel-management-server gunicorn[2390205]: STAFF DEBUG: admin@hotel.com admin
+Aug 23 04:18:40 hotel-management-server gunicorn[2390206]: ==> WSGI loading...
+Aug 23 04:18:40 hotel-management-server gunicorn[2390206]: ==> Django setup complete!
+Aug 23 04:18:40 hotel-management-server gunicorn[2390206]: ==> WSGI application loaded successfully!
+Aug 23 04:18:40 hotel-management-server gunicorn[2390206]: STAFF DEBUG: admin@hotel.com admin
+Aug 23 04:18:40 hotel-management-server gunicorn[2390206]: STAFF DEBUG: admin@hotel.com admin
+Aug 23 04:18:40 hotel-management-server gunicorn[2390206]: STAFF DEBUG: admin@hotel.com admin
+Aug 23 04:18:40 hotel-management-server gunicorn[2390203]: [2025-08-23 04:18:40 +0000] [2390203] [INFO] Handling signal: term
+Aug 23 04:18:40 hotel-management-server gunicorn[2390207]: [2025-08-23 09:48:40 +0530] [2390207] [INFO] Worker exiting (pid: 2390207)
+Aug 23 04:18:40 hotel-management-server gunicorn[2390207]: ==> WSGI loading...
+Aug 23 04:18:40 hotel-management-server gunicorn[2390207]: ==> Django setup complete!
+Aug 23 04:18:40 hotel-management-server gunicorn[2390207]: ==> WSGI application loaded successfully!
+Aug 23 04:18:40 hotel-management-server gunicorn[2390207]: STAFF DEBUG: admin@hotel.com admin
+Aug 23 04:18:40 hotel-management-server gunicorn[2390207]: STAFF DEBUG: admin@hotel.com admin
+Aug 23 04:18:41 hotel-management-server gunicorn[2390203]: [2025-08-23 04:18:41 +0000] [2390203] [INFO] Shutting down: Master
+Aug 23 04:18:41 hotel-management-server systemd[1]: gunicorn.service: Deactivated successfully.
+Aug 23 04:18:41 hotel-management-server systemd[1]: Stopped gunicorn daemon for hotel-management-backend.
+Aug 23 04:18:41 hotel-management-server systemd[1]: gunicorn.service: Consumed 13.537s CPU time.
+Aug 23 04:18:41 hotel-management-server systemd[1]: Started gunicorn daemon for hotel-management-backend.
+Aug 23 04:18:41 hotel-management-server gunicorn[2409403]: [2025-08-23 04:18:41 +0000] [2409403] [INFO] Starting gunicorn 23.0.0
+Aug 23 04:18:41 hotel-management-server gunicorn[2409403]: [2025-08-23 04:18:41 +0000] [2409403] [INFO] Listening at: http://127.0.0.1:8000 (2409403)
+Aug 23 04:18:41 hotel-management-server gunicorn[2409403]: [2025-08-23 04:18:41 +0000] [2409403] [INFO] Using worker: sync
+Aug 23 04:18:41 hotel-management-server gunicorn[2409414]: [2025-08-23 04:18:41 +0000] [2409414] [INFO] Booting worker with pid: 2409414
+Aug 23 04:18:41 hotel-management-server gunicorn[2409420]: [2025-08-23 04:18:41 +0000] [2409420] [INFO] Booting worker with pid: 2409420
+Aug 23 04:18:41 hotel-management-server gunicorn[2409421]: [2025-08-23 04:18:41 +0000] [2409421] [INFO] Booting worker with pid: 2409421
+ubuntu@hotel-management-server:~$ sudo journalctl -u gunicorn -f | grep -i inventory
 
-
-# Apply the fix
-source venv/bin/activate
-python manage.py migrate
-sudo systemctl restart gunicorn
-sudo systemctl restart nginx
-deactivate
-
-
-
-
-// FROM:
-const summaryRes = await fetch("/api/inventory/items/dashboard_summary/", {
-
-// TO:
-const summaryRes = await fetch("/api/inventory/items/stats/", {
+^C
+ubuntu@hotel-management-server:~$ tail -f ~/hotel-management-backend/logs/django.log
+tail: cannot open '/home/ubuntu/hotel-management-backend/logs/django.log' for reading: No such file or directory
+tail: no files remaining
+ubuntu@hotel-management-server:~$ sudo tail -f /var/log/nginx/error.log
+2025/08/23 01:16:41 [crit] 2385251#2385251: *1048 SSL_do_handshake() failed (SSL: error:0A00006C:SSL routines::bad key share) while SSL handshaking, client: 135.237.126.211, server: 0.0.0.0:443
+2025/08/23 01:30:01 [crit] 2385251#2385251: *1062 SSL_do_handshake() failed (SSL: error:0A00006C:SSL routines::bad key share) while SSL handshaking, client: 18.97.5.19, server: 0.0.0.0:443
+2025/08/23 02:35:49 [crit] 2385251#2385251: *1594 SSL_do_handshake() failed (SSL: error:0A00006C:SSL routines::bad key share) while SSL handshaking, client: 15.235.227.163, server: 0.0.0.0:443
