@@ -1,20 +1,13 @@
-Statistical Software and Methods:
-• SPSS 28.0 for primary statistical analysis
-• Microsoft Excel for data management and preliminary coding
-• R Studio for advanced statistical modeling (if required)
+Statistical Testing Framework:
 
-Analysis Techniques:
-Descriptive Analysis:
-• Frequency distributions and cross-tabulations
-• Measures of central tendency (mean, median, mode)
-• Variability measures (standard deviation, variance)
+H1 Testing: Multiple regression analysis will examine the relationship between environmental consciousness, cost perception, and EV preference. Standardized coefficients (β) will indicate the strength of relationships.
 
-Inferential Analysis:
-• Chi-square test for association between categorical variables
-• Independent t-test for comparing means between EV and petrol vehicle preferences
-• One-way ANOVA for comparing preferences across multiple demographic groups
-• Multiple regression analysis to identify predictive factors
-• Factor analysis for grouping related preference variables
-• Reliability analysis (Cronbach's Alpha) for scale validation
+H2 Testing: Chi-square test of independence will analyze the association between infrastructure confidence and petrol vehicle preference across different city tiers.
 
-Significance Level: p < 0.05 for all statistical tests
+H3 Testing: ANOVA will compare the effectiveness of different marketing messages (green vs. performance-focused) across age groups and education levels.
+
+Expected Statistical Outcomes:
+• R² values > 0.30 indicating meaningful explanatory power
+• Significance levels at p < 0.05 for primary hypotheses
+• Effect sizes (Cohen's d) > 0.30 for practical significance
+• Confidence intervals (95%) for all parameter estimates
