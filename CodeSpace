@@ -1,11 +1,20 @@
-Primary Data Collection Tools:
-• Structured questionnaire with 45 items (validated through pilot study with 30 respondents)
-• 7-point Likert scales for attitude measurement (reliability coefficient α > 0.7)
-• Ranking exercises for preference ordering
-• Demographic profiling (age, income, education, occupation)
-• Online survey platform (Google Forms/SurveyMonkey) + offline paper-based surveys
+Statistical Software and Methods:
+• SPSS 28.0 for primary statistical analysis
+• Microsoft Excel for data management and preliminary coding
+• R Studio for advanced statistical modeling (if required)
 
-Secondary Data Sources:
-• SIAM (Society of Indian Automobile Manufacturers) reports
-• Government publications (FAME-II scheme data, NITI Aayog reports)
-• Industry databases (J.D. Power automotive studies, Frost & Sullivan reports)
+Analysis Techniques:
+Descriptive Analysis:
+• Frequency distributions and cross-tabulations
+• Measures of central tendency (mean, median, mode)
+• Variability measures (standard deviation, variance)
+
+Inferential Analysis:
+• Chi-square test for association between categorical variables
+• Independent t-test for comparing means between EV and petrol vehicle preferences
+• One-way ANOVA for comparing preferences across multiple demographic groups
+• Multiple regression analysis to identify predictive factors
+• Factor analysis for grouping related preference variables
+• Reliability analysis (Cronbach's Alpha) for scale validation
+
+Significance Level: p < 0.05 for all statistical tests
