@@ -1,13 +1,16 @@
-Statistical Testing Framework:
+Research Design: Mixed-methods sequential explanatory design
 
-H1 Testing: Multiple regression analysis will examine the relationship between environmental consciousness, cost perception, and EV preference. Standardized coefficients (β) will indicate the strength of relationships.
+Phase 1 - Quantitative (Months 1-3):
+• Cross-sectional survey research with stratified random sampling
+• Self-administered questionnaires (online: 70%, offline: 30%)
+• Target response rate: 65% (industry standard for automotive surveys)
 
-H2 Testing: Chi-square test of independence will analyze the association between infrastructure confidence and petrol vehicle preference across different city tiers.
+Phase 2 - Qualitative (Months 4-5):
+• 6 focus group discussions (8-10 participants per group)
+• 10-15 in-depth interviews with industry experts
+• Thematic analysis of qualitative data using NVivo software
 
-H3 Testing: ANOVA will compare the effectiveness of different marketing messages (green vs. performance-focused) across age groups and education levels.
-
-Expected Statistical Outcomes:
-• R² values > 0.30 indicating meaningful explanatory power
-• Significance levels at p < 0.05 for primary hypotheses
-• Effect sizes (Cohen's d) > 0.30 for practical significance
-• Confidence intervals (95%) for all parameter estimates
+Data Integration:
+• Triangulation of quantitative and qualitative findings
+• Joint displays for data comparison and interpretation
+• Mixed-methods inference quality assessment
