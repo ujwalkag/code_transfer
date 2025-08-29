@@ -1,174 +1,213 @@
-# Navigate to your frontend directory
-cd ~/hotel-management-frontend/hotel-management-frontend
+# EXACT CHANGES TO apps/users/models.py
+class CustomUser(AbstractBaseUser, PermissionsMixin):
+    ROLE_CHOICES = (
+        ('admin', 'Admin'),
+        ('staff', 'Staff'),
+        ('waiter', 'Waiter'),        # ADD THIS
+        ('biller', 'Biller'),        # ADD THIS
+    )
 
-# Create the PWA manifest file
-cat > public/manifest.json << 'EOF'
-{
-  "name": "Hotel Management System",
-  "short_name": "HotelPOS",
-  "description": "Restaurant Order Management System",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#3B82F6",
-  "orientation": "portrait-primary",
-  "scope": "/",
-  "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png", 
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "categories": ["business", "productivity"],
-  "lang": "en"
-}
-EOF
-
-echo "✅ PWA manifest created!"
-
-////////////////////////////////////////////
-# Create simple placeholder icons (we'll create proper ones after testing)
-# For now, let's create basic colored squares
-
-# Create 192x192 icon (simple approach using ImageMagick if available)
-# If ImageMagick not available, we'll create placeholder HTML icons
-
-# Check if convert command exists
-if command -v convert >/dev/null 2>&1; then
-    # Create icons using ImageMagick
-    convert -size 192x192 xc:'#3B82F6' -gravity center -pointsize 60 -fill white -annotate +0+0 'H' public/icon-192.png
-    convert -size 512x512 xc:'#3B82F6' -gravity center -pointsize 160 -fill white -annotate +0+0 'H' public/icon-512.png
-    echo "✅ PWA icons created using ImageMagick!"
-else
-    # Create simple fallback approach - we'll add proper icons later
-    echo "⚠️  ImageMagick not found. We'll use default favicon for now."
-    echo "You can add proper icons later to public/icon-192.png and public/icon-512.png"
+    email = models.EmailField(unique=True)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)  # INCREASE to max_length=10
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
     
-    # Copy existing favicon if it exists, otherwise create placeholder
-    if [ -f "public/favicon.ico" ]; then
-        cp public/favicon.ico public/icon-192.png
-        cp public/favicon.ico public/icon-512.png
-    else
-        # Create empty placeholder files
-        touch public/icon-192.png
-        touch public/icon-512.png
-    fi
-fi
-///////////////////////////////////////////////////////
-# Create the _document.js file for PWA meta tags
-cat > pages/_document.js << 'EOF'
-import Document, { Html, Head, Main, NextScript } from 'next/document';
+    # ADD THESE PERMISSION FIELDS
+    can_create_orders = models.BooleanField(default=False)
+    can_generate_bills = models.BooleanField(default=False)
+    can_access_kitchen = models.BooleanField(default=False)
 
-class MyDocument extends Document {
-  render() {
-    return (
-      <Html>
-        <Head>
-          {/* PWA Manifest */}
-          <link rel="manifest" href="/manifest.json" />
-          
-          {/* PWA Meta Tags */}
-          <meta name="theme-color" content="#3B82F6" />
-          <meta name="apple-mobile-web-app-capable" content="yes" />
-          <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-          <meta name="apple-mobile-web-app-title" content="HotelPOS" />
-          
-          {/* PWA Icons */}
-          <link rel="apple-touch-icon" href="/icon-192.png" />
-          <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-          <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
-          
-          {/* Mobile Optimization */}
-          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-          <meta name="mobile-web-app-capable" content="yes" />
-          
-          {/* Prevent zoom on iOS */}
-          <meta name="format-detection" content="telephone=no" />
-        </Head>
-        <body>
-          <Main />
-          <NextScript />
-        </body>
-      </Html>
-    );
-  }
-}
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+    objects = CustomUserManager()
 
-export default MyDocument;
-EOF
+    def __str__(self):
+        return self.email
+/////////////////////////
 
-echo "✅ PWA document headers created!"
-//////////////////////////////////////////////////////
-# Backup current next.config.js
-cp next.config.js next.config.js.backup
 
-# Update next.config.js with PWA headers
-cat > next.config.js << 'EOF'
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  reactStrictMode: true,
-  
-  // PWA Configuration
-  async headers() {
-    return [
-      {
-        // Serve manifest with correct content-type
-        source: '/manifest.json',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'application/json',
-          },
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
-        // Cache PWA icons
-        source: '/icon-:size.png',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-    ];
-  },
-  
-  // Ensure images are optimized
-  images: {
-    domains: [],
-    formats: ['image/webp', 'image/avif'],
-  },
-  
-  // PWA offline support preparation
-  experimental: {
-    // Enable if you want service worker later
-    // serverComponents: true,
-  }
+# ADD to existing UserSerializer
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'email', 'role', 'can_create_orders', 'can_generate_bills', 'can_access_kitchen']
+
+# ADD new serializer for admin role management
+class UserRoleUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['role', 'can_create_orders', 'can_generate_bills', 'can_access_kitchen']
+
+
+////////////////////////////////////
+
+
+# REPLACE EXISTING with enhanced permissions
+class CanCreateOrders(BasePermission):
+    """Permission for creating orders - waiters and admins"""
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and 
+            (request.user.role == 'admin' or 
+             (request.user.role == 'waiter' and request.user.can_create_orders))
+        )
+
+class CanGenerateBills(BasePermission):
+    """Permission for generating bills - billers and admins"""
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and 
+            (request.user.role == 'admin' or 
+             (request.user.role == 'biller' and request.user.can_generate_bills))
+        )
+
+class CanAccessKitchen(BasePermission):
+    """Permission for kitchen display access"""
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and 
+            (request.user.role == 'admin' or request.user.can_access_kitchen)
+        )
+
+
+///////////////////////////////////////////////
+
+
+# ADD these methods to TableOrderViewSet class
+@action(detail=False, methods=['get'], permission_classes=[CanAccessKitchen])
+def kitchen_display_live(self, request):
+    """Real-time kitchen display data"""
+    kitchen_items = KitchenDisplayItem.objects.filter(
+        order_item__status__in=['pending', 'preparing']
+    ).select_related(
+        'order_item__table_order__table',
+        'order_item__menu_item'
+    ).order_by('-is_priority', 'display_time')
+    
+    serializer = KitchenDisplaySerializer(kitchen_items, many=True)
+    return Response(serializer.data)
+
+@action(detail=False, methods=['get'], permission_classes=[CanGenerateBills])
+def biller_dashboard(self, request):
+    """Get orders ready for billing grouped by table"""
+    orders = TableOrder.objects.filter(
+        status__in=['completed']
+    ).select_related('table').prefetch_related('items')
+    
+    # Group by table
+    orders_by_table = {}
+    for order in orders:
+        table_num = order.table.table_number
+        if table_num not in orders_by_table:
+            orders_by_table[table_num] = {
+                'table': RestaurantTableSerializer(order.table).data,
+                'orders': []
+            }
+        orders_by_table[table_num]['orders'].append(
+            TableOrderSerializer(order).data
+        )
+    
+    return Response(orders_by_table)
+
+@action(detail=False, methods=['get'], permission_classes=[CanCreateOrders])
+def waiter_orders(self, request):
+    """Get orders for current waiter"""
+    if request.user.role == 'waiter':
+        orders = TableOrder.objects.filter(waiter=request.user)
+    else:  # admin
+        orders = TableOrder.objects.all()
+    
+    orders = orders.filter(
+        status__in=['pending', 'in_progress', 'completed']
+    ).order_by('-created_at')
+    
+    serializer = TableOrderSerializer(orders, many=True)
+    return Response(serializer.data)
+
+//////////////////////////////////
+
+
+# ADD this method to StaffUserViewSet
+@action(detail=True, methods=['patch'])
+def update_permissions(self, request, pk=None):
+    """Update user role and permissions"""
+    try:
+        user = CustomUser.objects.get(id=pk)
+        if user.role == 'admin':
+            return Response({'error': 'Cannot modify admin permissions'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = UserRoleUpdateSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'message': 'Permissions updated successfully',
+                'user': UserSerializer(user).data
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    except CustomUser.DoesNotExist:
+        return Response({'error': 'User not found'}, 
+                       status=status.HTTP_404_NOT_FOUND)
+
+///////////////////////////////////
+
+
+// ENHANCED VERSION with permission checks
+const withRoleGuard = (Component, allowedRoles, requiredPermissions = []) => {
+  const allowed = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+
+  return function RoleProtectedComponent(props) {
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+      if (!loading && typeof user !== "undefined") {
+        if (!user) {
+          router.replace("/login");
+          return;
+        }
+        
+        // Check role
+        if (!allowed.includes(user.role)) {
+          router.replace("/unauthorized");
+          return;
+        }
+        
+        // Check specific permissions
+        for (const permission of requiredPermissions) {
+          if (!user[permission]) {
+            router.replace("/unauthorized");
+            return;
+          }
+        }
+      }
+    }, [user, loading, router]);
+
+    if (loading || typeof user === "undefined") {
+      return <div>Loading...</div>;
+    }
+
+    if (!user || !allowed.includes(user.role)) {
+      return null;
+    }
+
+    // Check permissions
+    for (const permission of requiredPermissions) {
+      if (!user[permission]) {
+        return null;
+      }
+    }
+
+    return <Component {...props} />;
+  };
 };
 
-module.exports = nextConfig;
-EOF
 
-echo "✅ Next.js config updated for PWA!"
-////////////////////////////////////////////////
-# Create waiter pages directory
-mkdir -p pages/waiter
+////////////////////////////////////////////
 
-# Create waiter index page
-cat > pages/waiter/index.js << 'EOF'
+
+// Mobile-optimized waiter dashboard
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import withRoleGuard from '@/hoc/withRoleGuard';
@@ -176,468 +215,175 @@ import Link from 'next/link';
 
 function WaiterDashboard() {
   const { user, logout } = useAuth();
-  const [tables, setTables] = useState([]);
   const [myOrders, setMyOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [tables, setTables] = useState([]);
 
   useEffect(() => {
-    fetchData();
+    fetchMyOrders();
+    fetchTables();
   }, []);
 
-  const fetchData = async () => {
+  const fetchMyOrders = async () => {
     try {
-      // Use existing APIs - no backend changes needed
-      const [tablesRes, ordersRes] = await Promise.all([
-        fetch('/api/tables/tables/', {
-          headers: { Authorization: `Bearer ${user?.access}` }
-        }),
-        fetch('/api/tables/orders/', {
-          headers: { Authorization: `Bearer ${user?.access}` }
-        })
-      ]);
-
-      if (tablesRes.ok) {
-        const tablesData = await tablesRes.json();
-        setTables(tablesData || []);
-      }
-
-      if (ordersRes.ok) {
-        const ordersData = await ordersRes.json();
-        // For now, show all orders (we'll filter by waiter later)
-        setMyOrders(ordersData || []);
-      }
+      const res = await fetch('/api/tables/orders/waiter_orders/', {
+        headers: { Authorization: `Bearer ${user?.access}` }
+      });
+      if (res.ok) setMyOrders(await res.json());
     } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching orders:', error);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-blue-800">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const fetchTables = async () => {
+    try {
+      const res = await fetch('/api/tables/tables/?status=available', {
+        headers: { Authorization: `Bearer ${user?.access}` }
+      });
+      if (res.ok) setTables(await res.json());
+    } catch (error) {
+      console.error('Error fetching tables:', error);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-blue-50">
-      {/* Mobile-First Header */}
-      <div className="bg-blue-600 text-white p-4 sticky top-0 z-10 shadow-lg">
-        <div className="flex justify-between items-center max-w-sm mx-auto">
-          <div>
-            <h1 className="text-xl font-bold">ߍ️ Waiter Panel</h1>
-            <p className="text-blue-100 text-sm">{user?.email}</p>
+    <div className="min-h-screen bg-blue-50 p-4">
+      <div className="max-w-sm mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-lg p-4 mb-4 shadow">
+          <div className="flex justify-between items-center">
+            <h1 className="text-xl font-bold">ߑ Hello Waiter!</h1>
+            <button onClick={logout} className="text-red-600 text-sm">Logout</button>
           </div>
-          <button 
-            onClick={logout}
-            className="bg-red-500 hover:bg-red-600 px-3 py-2 rounded text-sm font-medium"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
-      <div className="p-4 max-w-sm mx-auto pb-20">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-xl shadow-md text-center">
-            <div className="text-3xl text-green-600 font-bold mb-1">
-              {tables.filter(t => !t.is_occupied).length}
-            </div>
-            <div className="text-sm text-gray-600">Available Tables</div>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-md text-center">
-            <div className="text-3xl text-orange-600 font-bold mb-1">
-              {myOrders.filter(o => o.status === 'pending').length}
-            </div>
-            <div className="text-sm text-gray-600">Pending Orders</div>
-          </div>
+          <p className="text-gray-600 text-sm">{user?.email}</p>
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-6">
           <Link 
             href="/waiter/create-order"
-            className="block bg-green-600 text-white p-6 rounded-xl text-center shadow-lg hover:bg-green-700 active:bg-green-800 transition-colors"
+            className="bg-green-600 text-white p-6 rounded-lg text-center shadow hover:bg-green-700"
           >
-            <div className="text-4xl mb-2">➕</div>
-            <div className="text-xl font-bold mb-1">Create New Order</div>
-            <div className="text-green-100 text-sm">Select table and add items</div>
+            <div className="text-3xl mb-2">➕</div>
+            <div className="font-bold">New Order</div>
+          </Link>
+          
+          <Link 
+            href="/waiter/my-orders"
+            className="bg-blue-600 text-white p-6 rounded-lg text-center shadow hover:bg-blue-700"
+          >
+            <div className="text-3xl mb-2">ߓ</div>
+            <div className="font-bold">My Orders</div>
           </Link>
         </div>
 
         {/* Available Tables */}
-        <div className="bg-white rounded-xl p-4 mb-6 shadow-md">
-          <h3 className="font-bold mb-4 text-gray-800 text-lg">Available Tables</h3>
-          <div className="grid grid-cols-3 gap-3">
-            {tables
-              .filter(table => !table.is_occupied)
-              .slice(0, 9)
-              .map(table => (
-              <button
+        <div className="bg-white rounded-lg p-4 mb-4 shadow">
+          <h3 className="font-bold mb-3">Available Tables ({tables.length})</h3>
+          <div className="grid grid-cols-3 gap-2">
+            {tables.slice(0, 9).map(table => (
+              <Link
                 key={table.id}
-                onClick={() => window.location.href = `/waiter/create-order?table=${table.id}`}
-                className="bg-green-50 border-2 border-green-200 p-4 rounded-lg text-center hover:bg-green-100 active:bg-green-200 transition-colors"
+                href={`/waiter/create-order?table=${table.id}`}
+                className="bg-green-100 border-2 border-green-300 p-3 rounded text-center hover:bg-green-200"
               >
-                <div className="text-lg font-bold text-green-800">
-                  T{table.table_number}
-                </div>
-                <div className="text-xs text-green-600">
-                  {table.capacity} seats
-                </div>
-              </button>
+                <div className="font-bold">T{table.table_number}</div>
+                <div className="text-xs text-gray-600">{table.capacity} seats</div>
+              </Link>
             ))}
           </div>
-          
-          {tables.filter(t => !t.is_occupied).length === 0 && (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-2">ߔ</div>
-              <p className="text-gray-500">All tables are occupied</p>
-            </div>
-          )}
         </div>
 
         {/* Recent Orders */}
-        <div className="bg-white rounded-xl p-4 shadow-md">
-          <h3 className="font-bold mb-4 text-gray-800 text-lg">Recent Orders</h3>
-          {myOrders.slice(0, 5).map((order, index) => (
-            <div key={order.id || index} className="border-b border-gray-100 pb-3 mb-3 last:border-b-0 last:mb-0">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="font-medium text-gray-900">
-                    Table {order.table_number || order.table}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Order #{order.order_number || 'N/A'}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    ₹{parseFloat(order.total_amount || 0).toFixed(0)}
-                  </div>
-                </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+        <div className="bg-white rounded-lg p-4 shadow">
+          <h3 className="font-bold mb-3">My Recent Orders</h3>
+          {myOrders.slice(0, 3).map(order => (
+            <div key={order.id} className="border-b pb-2 mb-2 last:border-b-0">
+              <div className="flex justify-between">
+                <span className="font-medium">Table {order.table_number}</span>
+                <span className={`text-sm px-2 py-1 rounded ${
                   order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                  order.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
                   order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                  'bg-gray-100 text-gray-800'
+                  'bg-blue-100 text-blue-800'
                 }`}>
-                  {order.status || 'pending'}
+                  {order.status}
                 </span>
+              </div>
+              <div className="text-sm text-gray-600">
+                {order.items_count} items • ₹{order.total_amount}
               </div>
             </div>
           ))}
-          
-          {myOrders.length === 0 && (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-2">ߓ</div>
-              <p className="text-gray-500">No orders yet</p>
-              <p className="text-gray-400 text-sm mt-1">Create your first order above</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-        <div className="grid grid-cols-3 max-w-sm mx-auto">
-          <Link href="/waiter" className="p-4 text-center text-blue-600">
-            <div className="text-2xl mb-1">ߏ</div>
-            <div className="text-xs font-medium">Home</div>
-          </Link>
-          <Link href="/waiter/create-order" className="p-4 text-center text-gray-600 hover:text-green-600">
-            <div className="text-2xl mb-1">➕</div>
-            <div className="text-xs font-medium">New Order</div>
-          </Link>
-          <Link href="/waiter/orders" className="p-4 text-center text-gray-600 hover:text-blue-600">
-            <div className="text-2xl mb-1">ߓ</div>
-            <div className="text-xs font-medium">My Orders</div>
-          </Link>
         </div>
       </div>
     </div>
   );
 }
 
-// Allow access to admin, staff, and waiter roles for testing
-export default withRoleGuard(WaiterDashboard, ['admin', 'staff', 'waiter']);
-EOF
+export default withRoleGuard(WaiterDashboard, ['waiter'], ['can_create_orders']);
 
-echo "✅ Waiter dashboard page created!"
-//////////////////////////////////////////////////////
-# Create order creation page
-cat > pages/waiter/create-order.js << 'EOF'
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import withRoleGuard from '@/hoc/withRoleGuard';
-import { useRouter } from 'next/router';
-import Link from 'next/link';
 
-function CreateOrder() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [selectedTable, setSelectedTable] = useState(router.query.table || '');
-  const [tables, setTables] = useState([]);
-  const [menuItems, setMenuItems] = useState([]);
-  const [orderItems, setOrderItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+/////////////////////////////////////////////////
 
-  useEffect(() => {
-    fetchData();
-  }, []);
 
-  const fetchData = async () => {
-    try {
-      const [tablesRes, menuRes] = await Promise.all([
-        fetch('/api/tables/tables/', {
-          headers: { Authorization: `Bearer ${user?.access}` }
-        }),
-        fetch('/api/menu/items/', {
-          headers: { Authorization: `Bearer ${user?.access}` }
-        })
-      ]);
+# Navigate to backend
+cd ~/hotel-management-backend
 
-      if (tablesRes.ok) {
-        const tablesData = await tablesRes.json();
-        setTables(tablesData || []);
-      }
+# Backup current database
+python manage.py dumpdata > backup_$(date +%Y%m%d_%H%M%S).json
 
-      if (menuRes.ok) {
-        const menuData = await menuRes.json();
-        setMenuItems(menuData || []);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const addToOrder = (menuItem) => {
-    const existingItem = orderItems.find(item => item.menu_item.id === menuItem.id);
+/////////////////////////////////////////
+
+# EXACT REPLACEMENT for CustomUser class
+class CustomUser(AbstractBaseUser, PermissionsMixin):
+    ROLE_CHOICES = (
+        ('admin', 'Admin'),
+        ('staff', 'Staff'),
+        ('waiter', 'Waiter'),     # NEW
+        ('biller', 'Biller'),     # NEW
+    )
+
+    email = models.EmailField(unique=True)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)  # INCREASED from 10
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
     
-    if (existingItem) {
-      setOrderItems(orderItems.map(item =>
-        item.menu_item.id === menuItem.id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      ));
-    } else {
-      setOrderItems([...orderItems, {
-        menu_item: menuItem,
-        quantity: 1,
-        price: menuItem.price
-      }]);
-    }
-  };
+    # NEW PERMISSION FIELDS
+    can_create_orders = models.BooleanField(default=False)
+    can_generate_bills = models.BooleanField(default=False)
+    can_access_kitchen = models.BooleanField(default=False)
 
-  const updateQuantity = (menuItemId, newQuantity) => {
-    if (newQuantity <= 0) {
-      setOrderItems(orderItems.filter(item => item.menu_item.id !== menuItemId));
-    } else {
-      setOrderItems(orderItems.map(item =>
-        item.menu_item.id === menuItemId
-          ? { ...item, quantity: newQuantity }
-          : item
-      ));
-    }
-  };
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+    objects = CustomUserManager()
 
-  const calculateTotal = () => {
-    return orderItems.reduce((total, item) => 
-      total + (item.quantity * item.price), 0
-    );
-  };
+    def save(self, *args, **kwargs):
+        # Auto-assign permissions based on role
+        if self.role == 'admin':
+            self.can_create_orders = True
+            self.can_generate_bills = True
+            self.can_access_kitchen = True
+        elif self.role == 'waiter':
+            self.can_generate_bills = False
+            self.can_access_kitchen = False
+        elif self.role == 'biller':
+            self.can_create_orders = False
+            self.can_access_kitchen = False
+        
+        super().save(*args, **kwargs)
 
-  const submitOrder = async () => {
-    if (!selectedTable || orderItems.length === 0) {
-      alert('Please select a table and add items');
-      return;
-    }
+    def __str__(self):
+        return self.email
 
-    try {
-      const orderData = {
-        table: selectedTable,
-        customer_name: 'Guest',
-        customer_count: 1,
-        items: orderItems.map(item => ({
-          menu_item: item.menu_item.id,
-          quantity: item.quantity,
-          special_instructions: ''
-        }))
-      };
 
-      const response = await fetch('/api/tables/orders/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${user?.access}`
-        },
-        body: JSON.stringify(orderData)
-      });
+////////////////////////////////////////
 
-      if (response.ok) {
-        const result = await response.json();
-        alert(`Order created successfully! Order #${result.order_number}`);
-        router.push('/waiter');
-      } else {
-        const error = await response.json();
-        alert('Error creating order: ' + JSON.stringify(error));
-      }
-    } catch (error) {
-      console.error('Error creating order:', error);
-      alert('Network error creating order');
-    }
-  };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Loading menu...</p>
-        </div>
-      </div>
-    );
-  }
+# Create migration for new fields
+python manage.py makemigrations users --name add_waiter_biller_roles
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm p-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between max-w-sm mx-auto">
-          <Link href="/waiter" className="text-blue-600 text-sm">← Back</Link>
-          <h1 className="text-lg font-bold">Create Order</h1>
-          <div></div>
-        </div>
-      </div>
+# Review migration before applying
+python manage.py sqlmigrate users 0002  # Check SQL
 
-      <div className="p-4 max-w-sm mx-auto pb-24">
-        {/* Table Selection */}
-        <div className="bg-white rounded-lg p-4 mb-4 shadow-sm">
-          <label className="block font-medium mb-2">Select Table *</label>
-          <select
-            value={selectedTable}
-            onChange={(e) => setSelectedTable(e.target.value)}
-            className="w-full p-3 border rounded-lg text-lg"
-          >
-            <option value="">Choose Table</option>
-            {tables.filter(t => !t.is_occupied).map(table => (
-              <option key={table.id} value={table.id}>
-                Table {table.table_number} ({table.capacity} seats)
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Menu Items */}
-        <div className="bg-white rounded-lg p-4 mb-4 shadow-sm">
-          <h3 className="font-bold mb-3">Menu Items</h3>
-          <div className="space-y-3">
-            {menuItems.map(item => (
-              <div key={item.id} className="flex justify-between items-center p-3 border rounded-lg">
-                <div className="flex-1">
-                  <div className="font-medium">{item.name_en}</div>
-                  <div className="text-sm text-gray-600">{item.name_hi}</div>
-                  <div className="text-green-600 font-bold">₹{item.price}</div>
-                </div>
-                <button
-                  onClick={() => addToOrder(item)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                >
-                  Add
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Order Summary */}
-        {orderItems.length > 0 && (
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <h3 className="font-bold mb-3">Order Summary</h3>
-            <div className="space-y-2 mb-4">
-              {orderItems.map(item => (
-                <div key={item.menu_item.id} className="flex justify-between items-center">
-                  <div>
-                    <div className="font-medium">{item.menu_item.name_en}</div>
-                    <div className="text-sm text-gray-600">₹{item.price} each</div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => updateQuantity(item.menu_item.id, item.quantity - 1)}
-                      className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center"
-                    >
-                      −
-                    </button>
-                    <span className="w-8 text-center">{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item.menu_item.id, item.quantity + 1)}
-                      className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="border-t pt-3">
-              <div className="flex justify-between items-center text-lg font-bold">
-                <span>Total:</span>
-                <span>₹{calculateTotal().toFixed(0)}</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Bottom Action */}
-      {orderItems.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white p-4 shadow-lg border-t">
-          <div className="max-w-sm mx-auto">
-            <button
-              onClick={submitOrder}
-              disabled={!selectedTable || orderItems.length === 0}
-              className="w-full bg-green-600 text-white py-4 rounded-lg text-lg font-bold hover:bg-green-700 disabled:bg-gray-400"
-            >
-              Place Order (₹{calculateTotal().toFixed(0)})
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default withRoleGuard(CreateOrder, ['admin', 'staff', 'waiter']);
-EOF
-
-echo "✅ Order creation page created!"
-////////////////////////////////////////////////////
-# Build the application to test PWA features
-echo "ߔ Building application with PWA features..."
-npm run build
-
-echo "ߚ Starting application for testing..."
-echo ""
-echo "✅ PWA Setup Complete!"
-echo ""
-echo "ߓ To test PWA features:"
-echo "1. Run: npm start"
-echo "2. Open http://localhost:3000 in mobile Chrome/Safari"
-echo "3. Look for 'Add to Home Screen' prompt"
-echo "4. Test waiter interface at http://localhost:3000/waiter"
-echo ""
-echo "ߔ Next Steps:"
-echo "- Test waiter interface with your existing data"
-echo "- Add proper PWA icons (192x192 and 512x512 PNG)"
-echo "- Test on actual mobile devices"
-echo ""
-
-# Start the application
-echo "Starting the application..."
-npm start
+# Apply migration  
+python manage.py migrate users
