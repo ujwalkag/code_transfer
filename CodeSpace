@@ -1,325 +1,7 @@
-# EXACT CHANGES TO apps/users/models.py
-class CustomUser(AbstractBaseUser, PermissionsMixin):
-    ROLE_CHOICES = (
-        ('admin', 'Admin'),
-        ('staff', 'Staff'),
-        ('waiter', 'Waiter'),        # ADD THIS
-        ('biller', 'Biller'),        # ADD THIS
-    )
-
-    email = models.EmailField(unique=True)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES)  # INCREASE to max_length=10
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    
-    # ADD THESE PERMISSION FIELDS
-    can_create_orders = models.BooleanField(default=False)
-    can_generate_bills = models.BooleanField(default=False)
-    can_access_kitchen = models.BooleanField(default=False)
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
-    objects = CustomUserManager()
-
-    def __str__(self):
-        return self.email
-/////////////////////////
-
-
-# ADD to existing UserSerializer
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CustomUser
-        fields = ['id', 'email', 'role', 'can_create_orders', 'can_generate_bills', 'can_access_kitchen']
-
-# ADD new serializer for admin role management
-class UserRoleUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CustomUser
-        fields = ['role', 'can_create_orders', 'can_generate_bills', 'can_access_kitchen']
-
-
-////////////////////////////////////
-
-
-# REPLACE EXISTING with enhanced permissions
-class CanCreateOrders(BasePermission):
-    """Permission for creating orders - waiters and admins"""
-    def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and 
-            (request.user.role == 'admin' or 
-             (request.user.role == 'waiter' and request.user.can_create_orders))
-        )
-
-class CanGenerateBills(BasePermission):
-    """Permission for generating bills - billers and admins"""
-    def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and 
-            (request.user.role == 'admin' or 
-             (request.user.role == 'biller' and request.user.can_generate_bills))
-        )
-
-class CanAccessKitchen(BasePermission):
-    """Permission for kitchen display access"""
-    def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and 
-            (request.user.role == 'admin' or request.user.can_access_kitchen)
-        )
-
-
-///////////////////////////////////////////////
-
-
-# ADD these methods to TableOrderViewSet class
-@action(detail=False, methods=['get'], permission_classes=[CanAccessKitchen])
-def kitchen_display_live(self, request):
-    """Real-time kitchen display data"""
-    kitchen_items = KitchenDisplayItem.objects.filter(
-        order_item__status__in=['pending', 'preparing']
-    ).select_related(
-        'order_item__table_order__table',
-        'order_item__menu_item'
-    ).order_by('-is_priority', 'display_time')
-    
-    serializer = KitchenDisplaySerializer(kitchen_items, many=True)
-    return Response(serializer.data)
-
-@action(detail=False, methods=['get'], permission_classes=[CanGenerateBills])
-def biller_dashboard(self, request):
-    """Get orders ready for billing grouped by table"""
-    orders = TableOrder.objects.filter(
-        status__in=['completed']
-    ).select_related('table').prefetch_related('items')
-    
-    # Group by table
-    orders_by_table = {}
-    for order in orders:
-        table_num = order.table.table_number
-        if table_num not in orders_by_table:
-            orders_by_table[table_num] = {
-                'table': RestaurantTableSerializer(order.table).data,
-                'orders': []
-            }
-        orders_by_table[table_num]['orders'].append(
-            TableOrderSerializer(order).data
-        )
-    
-    return Response(orders_by_table)
-
-@action(detail=False, methods=['get'], permission_classes=[CanCreateOrders])
-def waiter_orders(self, request):
-    """Get orders for current waiter"""
-    if request.user.role == 'waiter':
-        orders = TableOrder.objects.filter(waiter=request.user)
-    else:  # admin
-        orders = TableOrder.objects.all()
-    
-    orders = orders.filter(
-        status__in=['pending', 'in_progress', 'completed']
-    ).order_by('-created_at')
-    
-    serializer = TableOrderSerializer(orders, many=True)
-    return Response(serializer.data)
-
-//////////////////////////////////
-
-
-# ADD this method to StaffUserViewSet
-@action(detail=True, methods=['patch'])
-def update_permissions(self, request, pk=None):
-    """Update user role and permissions"""
-    try:
-        user = CustomUser.objects.get(id=pk)
-        if user.role == 'admin':
-            return Response({'error': 'Cannot modify admin permissions'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
-        
-        serializer = UserRoleUpdateSerializer(user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({
-                'message': 'Permissions updated successfully',
-                'user': UserSerializer(user).data
-            })
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-    except CustomUser.DoesNotExist:
-        return Response({'error': 'User not found'}, 
-                       status=status.HTTP_404_NOT_FOUND)
-
-///////////////////////////////////
-
-
-// ENHANCED VERSION with permission checks
-const withRoleGuard = (Component, allowedRoles, requiredPermissions = []) => {
-  const allowed = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
-
-  return function RoleProtectedComponent(props) {
-    const { user, loading } = useAuth();
-    const router = useRouter();
-
-    useEffect(() => {
-      if (!loading && typeof user !== "undefined") {
-        if (!user) {
-          router.replace("/login");
-          return;
-        }
-        
-        // Check role
-        if (!allowed.includes(user.role)) {
-          router.replace("/unauthorized");
-          return;
-        }
-        
-        // Check specific permissions
-        for (const permission of requiredPermissions) {
-          if (!user[permission]) {
-            router.replace("/unauthorized");
-            return;
-          }
-        }
-      }
-    }, [user, loading, router]);
-
-    if (loading || typeof user === "undefined") {
-      return <div>Loading...</div>;
-    }
-
-    if (!user || !allowed.includes(user.role)) {
-      return null;
-    }
-
-    // Check permissions
-    for (const permission of requiredPermissions) {
-      if (!user[permission]) {
-        return null;
-      }
-    }
-
-    return <Component {...props} />;
-  };
-};
 
 
 ////////////////////////////////////////////
 
-
-// Mobile-optimized waiter dashboard
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import withRoleGuard from '@/hoc/withRoleGuard';
-import Link from 'next/link';
-
-function WaiterDashboard() {
-  const { user, logout } = useAuth();
-  const [myOrders, setMyOrders] = useState([]);
-  const [tables, setTables] = useState([]);
-
-  useEffect(() => {
-    fetchMyOrders();
-    fetchTables();
-  }, []);
-
-  const fetchMyOrders = async () => {
-    try {
-      const res = await fetch('/api/tables/orders/waiter_orders/', {
-        headers: { Authorization: `Bearer ${user?.access}` }
-      });
-      if (res.ok) setMyOrders(await res.json());
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-    }
-  };
-
-  const fetchTables = async () => {
-    try {
-      const res = await fetch('/api/tables/tables/?status=available', {
-        headers: { Authorization: `Bearer ${user?.access}` }
-      });
-      if (res.ok) setTables(await res.json());
-    } catch (error) {
-      console.error('Error fetching tables:', error);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-blue-50 p-4">
-      <div className="max-w-sm mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg p-4 mb-4 shadow">
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl font-bold">ߑ Hello Waiter!</h1>
-            <button onClick={logout} className="text-red-600 text-sm">Logout</button>
-          </div>
-          <p className="text-gray-600 text-sm">{user?.email}</p>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <Link 
-            href="/waiter/create-order"
-            className="bg-green-600 text-white p-6 rounded-lg text-center shadow hover:bg-green-700"
-          >
-            <div className="text-3xl mb-2">➕</div>
-            <div className="font-bold">New Order</div>
-          </Link>
-          
-          <Link 
-            href="/waiter/my-orders"
-            className="bg-blue-600 text-white p-6 rounded-lg text-center shadow hover:bg-blue-700"
-          >
-            <div className="text-3xl mb-2">ߓ</div>
-            <div className="font-bold">My Orders</div>
-          </Link>
-        </div>
-
-        {/* Available Tables */}
-        <div className="bg-white rounded-lg p-4 mb-4 shadow">
-          <h3 className="font-bold mb-3">Available Tables ({tables.length})</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {tables.slice(0, 9).map(table => (
-              <Link
-                key={table.id}
-                href={`/waiter/create-order?table=${table.id}`}
-                className="bg-green-100 border-2 border-green-300 p-3 rounded text-center hover:bg-green-200"
-              >
-                <div className="font-bold">T{table.table_number}</div>
-                <div className="text-xs text-gray-600">{table.capacity} seats</div>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Orders */}
-        <div className="bg-white rounded-lg p-4 shadow">
-          <h3 className="font-bold mb-3">My Recent Orders</h3>
-          {myOrders.slice(0, 3).map(order => (
-            <div key={order.id} className="border-b pb-2 mb-2 last:border-b-0">
-              <div className="flex justify-between">
-                <span className="font-medium">Table {order.table_number}</span>
-                <span className={`text-sm px-2 py-1 rounded ${
-                  order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                  order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                  'bg-blue-100 text-blue-800'
-                }`}>
-                  {order.status}
-                </span>
-              </div>
-              <div className="text-sm text-gray-600">
-                {order.items_count} items • ₹{order.total_amount}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default withRoleGuard(WaiterDashboard, ['waiter'], ['can_create_orders']);
 
 
 /////////////////////////////////////////////////
@@ -1213,3 +895,157 @@ npm start
 # - http://localhost:3000/waiter (waiter dashboard)  
 # - http://localhost:3000/waiter/create-order (order creation)
 
+////////////////////////////////////////////////////////////
+ubuntu@hotel-management-server:~/hotel-management-backend$
+python manage.py dumpdata > backup_$(date +%Y%m%d_%H%M%S).json
+Traceback (most recent call last):
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
+    main()
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 436, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 412, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 453, in execute
+    self.check()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 485, in check
+    all_issues = checks.run_checks(
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/checks/registry.py", line 88, in run_checks
+    new_errors = check(app_configs=app_configs, databases=databases)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/checks/urls.py", line 14, in check_url_config
+    return check_resolver(resolver)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/checks/urls.py", line 24, in check_resolver
+    return check_method()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/resolvers.py", line 494, in check
+    for pattern in self.url_patterns:
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/utils/functional.py", line 57, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/resolvers.py", line 715, in url_patterns
+    patterns = getattr(self.urlconf_module, "urlpatterns", self.urlconf_module)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/utils/functional.py", line 57, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/resolvers.py", line 708, in urlconf_module
+    return import_module(self.urlconf_name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/ubuntu/hotel-management-backend/config/urls.py", line 3, in <module>
+    from apps.users.views import CustomTokenObtainPairView
+  File "/home/ubuntu/hotel-management-backend/apps/users/views.py", line 20, in <module>
+    class StaffUserViewSet(viewsets.ViewSet):
+  File "/home/ubuntu/hotel-management-backend/apps/users/views.py", line 23, in StaffUserViewSet
+    @action(detail=True, methods=['patch'])
+NameError: name 'action' is not defined
+ubuntu@hotel-management-server:~/hotel-management-backend$ cat apps/users/view.py config/urls.py
+cat: apps/users/view.py: No such file or directory
+from django.contrib import admin
+from django.urls import path, include
+from apps.users.views import CustomTokenObtainPairView
+from rest_framework_simplejwt.views import TokenRefreshView
+urlpatterns = [
+    path('api/auth/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    #path('api/auth/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('admin/', admin.site.urls),
+    path('api/core/', include('apps.core.urls')),
+    path('api/menu/', include('apps.menu.urls')),
+    path('api/rooms/', include('apps.rooms.urls')),
+    path('api/users/', include('apps.users.urls')),
+    path('api/bills/', include('apps.bills.urls')),
+    path('api/inventory/', include('apps.inventory.urls')),
+    path('api/notifications/', include('apps.notifications.urls')),
+    path('api/staff/', include('apps.staff.urls')),
+    path('api/tables/', include('apps.tables.urls')),
+]
+
+ubuntu@hotel-management-server:~/hotel-management-backend$ cat apps/users/views.py
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.permissions import BasePermission, AllowAny
+from rest_framework_simplejwt.views import TokenObtainPairView
+from django.db import transaction
+
+from .models import CustomUser
+from .serializers import CustomTokenObtainPairSerializer, UserSerializer
+
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+class IsAdminRole(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and getattr(request.user, "role", None) == "admin"
+
+class StaffUserViewSet(viewsets.ViewSet):
+    permission_classes = [IsAdminRole]
+
+    @action(detail=True, methods=['patch'])
+    def update_permissions(self, request, pk=None):
+        """Update user role and permissions"""
+        try:
+            user = CustomUser.objects.get(id=pk)
+            if user.role == 'admin':
+                return Response({'error': 'Cannot modify admin permissions'},status=status.HTTP_400_BAD_REQUEST)
+
+            serializer = UserRoleUpdateSerializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    'message': 'Permissions updated successfully',
+                    'user': UserSerializer(user).data
+                })
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    def list(self, request):
+        staff_users = CustomUser.objects.filter(role="staff")
+        serializer = UserSerializer(staff_users, many=True)
+        return Response(serializer.data)
+
+    def create(self, request):
+        email = request.data.get("email", "").strip().lower()
+        password = request.data.get("password", "").strip()
+        if not email or not password:
+            return Response({"error": "Email and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+        if CustomUser.objects.filter(email=email).exists():
+            return Response({"error": "Email already exists."}, status=status.HTTP_409_CONFLICT)
+        with transaction.atomic():
+            user = CustomUser.objects.create_user(
+                email=email, password=password, role="staff"
+            )
+        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, pk=None):
+        try:
+            user = CustomUser.objects.get(id=pk, role="staff")
+            user.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except CustomUser.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+class LogoutView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
+        if not refresh_token:
+            return Response({"error": "Refresh token required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"detail": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception:
+            return Response({"error": "Invalid token or already logged out"}, status=status.HTTP_400_BAD_REQUEST)
+ubuntu@hotel-management-server:~/hotel-management-backend$
