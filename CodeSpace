@@ -1,3 +1,35 @@
+cd ~/hotel-management-frontend/hotel-management-frontend
+
+# Check what we currently have
+ls -la public/
+
+# Create simple colored square icons using your existing logo.png
+# If logo.png exists, resize it; otherwise create simple colored squares
+
+if [ -f "public/logo.png" ]; then
+    echo "✅ Found logo.png - will use as base for PWA icons"
+    cp public/logo.png public/icon-192.png
+    cp public/logo.png public/icon-512.png
+else
+    echo "⚠️  No logo.png found - creating simple colored placeholder icons"
+    
+    # Create simple HTML-based icons (fallback method)
+    # Create a simple 192x192 colored square
+    echo '<svg width="192" height="192" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" fill="#3B82F6"/>
+  <text x="50%" y="50%" font-family="Arial" font-size="72" fill="white" text-anchor="middle" dy="0.35em">H</text>
+</svg>' > public/icon-192.svg
+    
+    # Create a simple 512x512 colored square
+    echo '<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#3B82F6"/>
+  <text x="50%" y="50%" font-family="Arial" font-size="200" fill="white" text-anchor="middle" dy="0.35em">H</text>
+</svg>' > public/icon-512.svg
+    
+    echo "✅ Created simple SVG icons as placeholders"
+fi
+////////////////////////
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   trailingSlash: false,
@@ -11,14 +43,14 @@ const nextConfig = {
   
   async redirects() {
     return [
-      // ✅ KEEP ALL YOUR EXISTING REDIRECTS
+      // ✅ EXISTING REDIRECTS (PRESERVED)
       {
         source: "/rooms",
         destination: "/admin/rooms",
         permanent: true,
       },
       {
-        source: "/menu",
+        source: "/menu", 
         destination: "/admin/menu",
         permanent: true,
       },
@@ -37,7 +69,6 @@ const nextConfig = {
         destination: "/staff-dashboard",
         permanent: true,
       },
-      // ✅ ADD TRAILING SLASH REDIRECT (NEW)
       {
         source: '/:path+/',
         destination: '/:path+',
@@ -57,7 +88,7 @@ const nextConfig = {
   
   async headers() {
     return [
-      // ✅ KEEP YOUR EXISTING API HEADERS
+      // ✅ EXISTING API HEADERS (PRESERVED)
       {
         source: "/api/:path*",
         headers: [
@@ -75,7 +106,7 @@ const nextConfig = {
           },
         ],
       },
-      // ✅ ADD NEW PWA HEADERS (SAFE)
+      // ✅ PWA MANIFEST ONLY (SAFE)
       {
         source: '/manifest.json',
         headers: [
@@ -89,21 +120,13 @@ const nextConfig = {
           },
         ],
       },
-      {
-        source: '/icon-:size.png',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable', 
-          },
-        ],
-      },
+      // ❌ REMOVED ICON HEADERS UNTIL ICONS EXIST
     ];
   },
   
   basePath: "",
   
-  // ✅ ADD NEW IMAGE OPTIMIZATION (SAFE)
+  // ✅ IMAGE OPTIMIZATION (SAFE)
   images: {
     domains: ['hotelrshammad.co.in'],
     formats: ['image/webp', 'image/avif'],
@@ -112,216 +135,24 @@ const nextConfig = {
 
 module.exports = nextConfig;
 
-
-////////////////////////////////////////////
-
-
-
-/////////////////////////////////////////////////
-
-
-# Navigate to backend
-cd ~/hotel-management-backend
-
-# Backup current database
-python manage.py dumpdata > backup_$(date +%Y%m%d_%H%M%S).json
-
-
-/////////////////////////////////////////
-
-# EXACT REPLACEMENT for CustomUser class
-class CustomUser(AbstractBaseUser, PermissionsMixin):
-    ROLE_CHOICES = (
-        ('admin', 'Admin'),
-        ('staff', 'Staff'),
-        ('waiter', 'Waiter'),     # NEW
-        ('biller', 'Biller'),     # NEW
-    )
-
-    email = models.EmailField(unique=True)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES)  # INCREASED from 10
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    
-    # NEW PERMISSION FIELDS
-    can_create_orders = models.BooleanField(default=False)
-    can_generate_bills = models.BooleanField(default=False)
-    can_access_kitchen = models.BooleanField(default=False)
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
-    objects = CustomUserManager()
-
-    def save(self, *args, **kwargs):
-        # Auto-assign permissions based on role
-        if self.role == 'admin':
-            self.can_create_orders = True
-            self.can_generate_bills = True
-            self.can_access_kitchen = True
-        elif self.role == 'waiter':
-            self.can_generate_bills = False
-            self.can_access_kitchen = False
-        elif self.role == 'biller':
-            self.can_create_orders = False
-            self.can_access_kitchen = False
-        
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.email
-
-
-////////////////////////////////////////
-
-
-# Create migration for new fields
-python manage.py makemigrations users --name add_waiter_biller_roles
-
-# Review migration before applying
-python manage.py sqlmigrate users 0002  # Check SQL
-
-# Apply migration  
-python manage.py migrate users
-
-
-
 //////////////////////////////////////////
-
-
-# COMPLETE REPLACEMENT
-from rest_framework.permissions import BasePermission
-
-class CanCreateOrders(BasePermission):
-    def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and 
-            (request.user.role == 'admin' or 
-             (request.user.role == 'waiter' and request.user.can_create_orders))
-        )
-
-class CanGenerateBills(BasePermission):
-    def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and 
-            (request.user.role == 'admin' or 
-             (request.user.role in ['biller', 'staff'] and request.user.can_generate_bills))
-        )
-
-class CanAccessKitchen(BasePermission):
-    def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and 
-            (request.user.role == 'admin' or request.user.can_access_kitchen)
-        )
-
-# Keep existing for backward compatibility
-class IsAdminOrStaff(BasePermission):
-    def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and 
-            request.user.role in ['admin', 'staff']
-        )
-
-
-/////////////////////////////////////////////////
-
-
-import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/router";
-import { useEffect } from "react";
-
-const withRoleGuard = (Component, allowedRoles, requiredPermissions = []) => {
-  const allowed = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
-
-  return function RoleProtectedComponent(props) {
-    const { user, loading } = useAuth();
-    const router = useRouter();
-
-    useEffect(() => {
-      if (!loading && typeof user !== "undefined") {
-        if (!user) {
-          router.replace("/login");
-          return;
-        }
-        
-        // Check role
-        if (!allowed.includes(user.role)) {
-          router.replace("/unauthorized");
-          return;
-        }
-        
-        // Check specific permissions
-        for (const permission of requiredPermissions) {
-          if (!user[permission]) {
-            router.replace("/unauthorized");
-            return;
-          }
-        }
-      }
-    }, [user, loading, router]);
-
-    if (loading || typeof user === "undefined") {
-      return <div className="flex justify-center items-center h-screen">Loading...</div>;
-    }
-
-    if (!user || !allowed.includes(user.role)) {
-      return null;
-    }
-
-    // Check permissions
-    for (const permission of requiredPermissions) {
-      if (!user[permission]) {
-        return null;
-      }
-    }
-
-    return <Component {...props} />;
-  };
-};
-
-export default withRoleGuard;
-
-/////////////////////////////////////////////////////////
-
 
 {
   "name": "Hotel Restaurant Management",
-  "short_name": "HotelPOS",
+  "short_name": "HotelPOS", 
   "description": "Restaurant Order & Billing System",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff", 
+  "background_color": "#ffffff",
   "theme_color": "#3B82F6",
   "orientation": "portrait-primary",
   "scope": "/",
-  "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192", 
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png", 
-      "purpose": "any maskable"
-    }
-  ],
   "categories": ["business", "productivity"],
   "lang": "en"
 }
 
 
-////////////////////////////////
-
-# Use your existing logo.png as base for PWA icons
-cp public/logo.png public/icon-192.png
-cp public/logo.png public/icon-512.png
-
-# We'll create proper sized icons later
-
-///////////////////////
+////////////////////////////
 
 import Document, { Html, Head, Main, NextScript } from 'next/document';
 
@@ -339,9 +170,7 @@ class MyDocument extends Document {
           <meta name="apple-mobile-web-app-status-bar-style" content="default" />
           <meta name="apple-mobile-web-app-title" content="HotelPOS" />
           
-          {/* PWA Icons */}
-          <link rel="apple-touch-icon" href="/icon-192.png" />
-          <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+          {/* ❌ REMOVED ICON REFERENCES UNTIL ICONS EXIST */}
           
           {/* Mobile Optimization */}
           <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
@@ -359,12 +188,61 @@ class MyDocument extends Document {
 
 export default MyDocument;
 
-////////////////////////////////
+//////////////////////////////////
 
-cp next.config.js next.config.js.backup
+cd ~/hotel-management-frontend/hotel-management-frontend
 
-/////////////////////////////////
+# 1. Create PWA manifest (without icons)
+cat > public/manifest.json << 'EOF'
+{
+  "name": "Hotel Restaurant Management",
+  "short_name": "HotelPOS", 
+  "description": "Restaurant Order & Billing System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3B82F6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["business", "productivity"],
+  "lang": "en"
+}
+EOF
 
+# 2. Create _document.js (without icon references)
+cat > pages/_document.js << 'EOF'
+import Document, { Html, Head, Main, NextScript } from 'next/document';
+
+class MyDocument extends Document {
+  render() {
+    return (
+      <Html>
+        <Head>
+          <link rel="manifest" href="/manifest.json" />
+          <meta name="theme-color" content="#3B82F6" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+          <meta name="apple-mobile-web-app-title" content="HotelPOS" />
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+          <meta name="mobile-web-app-capable" content="yes" />
+          <meta name="format-detection" content="telephone=no" />
+        </Head>
+        <body>
+          <Main />
+          <NextScript />
+        </body>
+      </Html>
+    );
+  }
+}
+
+export default MyDocument;
+EOF
+
+# 3. Backup and update next.config.js (safe version)
+cp next.config.js next.config.js.backup.$(date +%Y%m%d_%H%M%S)
+
+cat > next.config.js << 'EOF'
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   trailingSlash: false,
@@ -372,12 +250,37 @@ const nextConfig = {
   reactStrictMode: true,
   env: {
     NEXT_PUBLIC_API_URL: "https://hotelrshammad.co.in/api",
-    NEXT_PUBLIC_STORAGE_PATH: "/local-storage",
+    NEXT_PUBLIC_STORAGE_PATH: "/local-storage", 
     NEXT_PUBLIC_AUTH_SECRET: "your-secure-secret",
   },
   
   async redirects() {
     return [
+      {
+        source: "/rooms",
+        destination: "/admin/rooms",
+        permanent: true,
+      },
+      {
+        source: "/menu",
+        destination: "/admin/menu", 
+        permanent: true,
+      },
+      {
+        source: "/billing/create",
+        destination: "/staff/restaurant-billing",
+        permanent: true,
+      },
+      {
+        source: "/admin",
+        destination: "/admin/dashboard",
+        permanent: true,
+      },
+      {
+        source: "/staff", 
+        destination: "/staff-dashboard",
+        permanent: true,
+      },
       {
         source: '/:path+/',
         destination: '/:path+',
@@ -398,14 +301,14 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: "/api/:path*",
+        source: "/api/:path*", 
         headers: [
           {
             key: "Access-Control-Allow-Origin",
             value: "https://hotelrshammad.co.in",
           },
           {
-            key: "Access-Control-Allow-Methods", 
+            key: "Access-Control-Allow-Methods",
             value: "GET,POST,PUT,DELETE,OPTIONS",
           },
           {
@@ -414,26 +317,16 @@ const nextConfig = {
           },
         ],
       },
-      // ✅ NEW: PWA Headers
       {
         source: '/manifest.json',
         headers: [
           {
-            key: 'Content-Type',
+            key: 'Content-Type', 
             value: 'application/json',
           },
           {
-            key: 'Cache-Control', 
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
-        source: '/icon-:size.png',
-        headers: [
-          {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable', 
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },
@@ -442,7 +335,6 @@ const nextConfig = {
   
   basePath: "",
   
-  // ✅ NEW: Image optimization
   images: {
     domains: ['hotelrshammad.co.in'],
     formats: ['image/webp', 'image/avif'],
@@ -450,565 +342,13 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
-
-
-
-/////////////////////////////////
-
-mkdir -p pages/waiter
-
-////////////////////////////
-
-
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import withRoleGuard from '@/hoc/withRoleGuard';
-import Link from 'next/link';
-
-function WaiterDashboard() {
-  const { user, logout } = useAuth();
-  const [tables, setTables] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    fetchData();
-  }, [user]);
-
-  const fetchData = async () => {
-    if (!user?.access) return;
-    
-    try {
-      setLoading(true);
-      setError('');
-      
-      // Use your existing production APIs
-      const [tablesRes, ordersRes] = await Promise.all([
-        fetch('/api/tables/tables/', {
-          headers: { Authorization: `Bearer ${user.access}` }
-        }),
-        fetch('/api/tables/orders/', { 
-          headers: { Authorization: `Bearer ${user.access}` }
-        })
-      ]);
-
-      if (tablesRes.ok) {
-        const tablesData = await tablesRes.json();
-        setTables(Array.isArray(tablesData) ? tablesData : []);
-      }
-
-      if (ordersRes.ok) {
-        const ordersData = await ordersRes.json(); 
-        setOrders(Array.isArray(ordersData) ? ordersData : []);
-      }
-      
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-blue-800">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const availableTables = tables.filter(t => !t.is_occupied);
-  const pendingOrders = orders.filter(o => o.status === 'pending');
-
-  return (
-    <div className="min-h-screen bg-blue-50">
-      {/* Mobile Header */}
-      <div className="bg-blue-600 text-white p-4 sticky top-0 z-10 shadow-lg">
-        <div className="flex justify-between items-center max-w-sm mx-auto">
-          <div>
-            <h1 className="text-xl font-bold">ߍ️ Waiter Panel</h1>
-            <p className="text-blue-100 text-sm">{user?.email}</p>
-          </div>
-          <button 
-            onClick={logout}
-            className="bg-red-500 hover:bg-red-600 px-3 py-2 rounded text-sm"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
-      <div className="p-4 max-w-sm mx-auto pb-20">
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-xl shadow-md text-center">
-            <div className="text-3xl text-green-600 font-bold mb-1">
-              {availableTables.length}
-            </div>
-            <div className="text-sm text-gray-600">Available Tables</div>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-md text-center">
-            <div className="text-3xl text-orange-600 font-bold mb-1">
-              {pendingOrders.length}
-            </div>
-            <div className="text-sm text-gray-600">Pending Orders</div>
-          </div>
-        </div>
-
-        {/* Create Order Button */}
-        <div className="mb-6">
-          <Link 
-            href="/waiter/create-order"
-            className="block bg-green-600 text-white p-6 rounded-xl text-center shadow-lg hover:bg-green-700 active:bg-green-800 transition-colors"
-          >
-            <div className="text-4xl mb-2">➕</div>
-            <div className="text-xl font-bold mb-1">Create New Order</div>
-            <div className="text-green-100 text-sm">Select table and add items</div>
-          </Link>
-        </div>
-
-        {/* Available Tables */}
-        <div className="bg-white rounded-xl p-4 mb-6 shadow-md">
-          <h3 className="font-bold mb-4 text-gray-800 text-lg">Available Tables</h3>
-          
-          {availableTables.length > 0 ? (
-            <div className="grid grid-cols-3 gap-3">
-              {availableTables.slice(0, 9).map(table => (
-                <Link
-                  key={table.id}
-                  href={`/waiter/create-order?table=${table.id}`}
-                  className="bg-green-50 border-2 border-green-200 p-4 rounded-lg text-center hover:bg-green-100 active:bg-green-200 transition-colors"
-                >
-                  <div className="text-lg font-bold text-green-800">
-                    T{table.table_number}
-                  </div>
-                  <div className="text-xs text-green-600">
-                    {table.capacity} seats
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-2">ߔ</div>
-              <p className="text-gray-500">All tables occupied</p>
-            </div>
-          )}
-        </div>
-
-        {/* Recent Orders */}
-        <div className="bg-white rounded-xl p-4 shadow-md">
-          <h3 className="font-bold mb-4 text-gray-800 text-lg">Recent Orders</h3>
-          
-          {orders.length > 0 ? (
-            orders.slice(0, 5).map((order, index) => (
-              <div key={order.id || index} className="border-b border-gray-100 pb-3 mb-3 last:border-b-0 last:mb-0">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      Table {order.table_number || 'N/A'}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      #{order.order_number || 'N/A'}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      ₹{parseFloat(order.total_amount || 0).toFixed(0)}
-                    </div>
-                  </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    order.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                    order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {order.status || 'pending'}
-                  </span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-2">ߓ</div>
-              <p className="text-gray-500">No orders yet</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-        <div className="grid grid-cols-3 max-w-sm mx-auto">
-          <Link href="/waiter" className="p-4 text-center text-blue-600">
-            <div className="text-2xl mb-1">ߏ</div>
-            <div className="text-xs font-medium">Home</div>
-          </Link>
-          <Link href="/waiter/create-order" className="p-4 text-center text-gray-600">
-            <div className="text-2xl mb-1">➕</div>
-            <div className="text-xs font-medium">New Order</div>
-          </Link>
-          <Link href="/staff/restaurant-billing" className="p-4 text-center text-gray-600">
-            <div className="text-2xl mb-1">ߒ</div>
-            <div className="text-xs font-medium">Billing</div>
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ✅ Allow admin and staff access for testing - no new roles needed yet
-export default withRoleGuard(WaiterDashboard, ['admin', 'staff']);
-
-
-//////////////////////////////////////////
-
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import withRoleGuard from '@/hoc/withRoleGuard';
-import { useRouter } from 'next/router';
-import Link from 'next/link';
-
-function CreateOrder() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [selectedTable, setSelectedTable] = useState(router.query.table || '');
-  const [tables, setTables] = useState([]);
-  const [menuItems, setMenuItems] = useState([]);
-  const [orderItems, setOrderItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [customerName, setCustomerName] = useState('Guest');
-
-  useEffect(() => {
-    fetchData();
-  }, [user]);
-
-  const fetchData = async () => {
-    if (!user?.access) return;
-    
-    try {
-      // Use your existing production APIs
-      const [tablesRes, menuRes] = await Promise.all([
-        fetch('/api/tables/tables/', {
-          headers: { Authorization: `Bearer ${user.access}` }
-        }),
-        fetch('/api/menu/items/', {
-          headers: { Authorization: `Bearer ${user.access}` }
-        })
-      ]);
-
-      if (tablesRes.ok) {
-        const tablesData = await tablesRes.json();
-        setTables(Array.isArray(tablesData) ? tablesData : []);
-      }
-
-      if (menuRes.ok) {
-        const menuData = await menuRes.json();
-        // Handle both paginated and array responses
-        const items = Array.isArray(menuData) ? menuData : (menuData.results || []);
-        setMenuItems(items.filter(item => item.available));
-      }
-      
-    } catch (err) {
-      console.error('Error fetching data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addToOrder = (menuItem) => {
-    const existingItem = orderItems.find(item => item.menu_item.id === menuItem.id);
-    
-    if (existingItem) {
-      setOrderItems(orderItems.map(item =>
-        item.menu_item.id === menuItem.id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      ));
-    } else {
-      setOrderItems([...orderItems, {
-        menu_item: menuItem,
-        quantity: 1,
-        price: parseFloat(menuItem.price)
-      }]);
-    }
-  };
-
-  const updateQuantity = (menuItemId, newQuantity) => {
-    if (newQuantity <= 0) {
-      setOrderItems(orderItems.filter(item => item.menu_item.id !== menuItemId));
-    } else {
-      setOrderItems(orderItems.map(item =>
-        item.menu_item.id === menuItemId
-          ? { ...item, quantity: newQuantity }
-          : item
-      ));
-    }
-  };
-
-  const calculateTotal = () => {
-    return orderItems.reduce((total, item) => 
-      total + (item.quantity * item.price), 0
-    );
-  };
-
-  const submitOrder = async () => {
-    if (!selectedTable || orderItems.length === 0) {
-      alert('Please select a table and add items');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      // Use your existing table orders API
-      const orderData = {
-        table: parseInt(selectedTable),
-        customer_name: customerName,
-        customer_count: 1,
-        items: orderItems.map(item => ({
-          menu_item: item.menu_item.id,
-          quantity: item.quantity,
-          special_instructions: ''
-        }))
-      };
-
-      const response = await fetch('/api/tables/orders/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${user.access}`
-        },
-        body: JSON.stringify(orderData)
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        alert(`✅ Order created successfully!\nOrder #${result.order_number || result.id}`);
-        router.push('/waiter');
-      } else {
-        const error = await response.json();
-        console.error('Order creation error:', error);
-        alert('❌ Error creating order: ' + (error.detail || JSON.stringify(error)));
-      }
-    } catch (error) {
-      console.error('Network error:', error);
-      alert('❌ Network error creating order');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Loading menu...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm p-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between max-w-sm mx-auto">
-          <Link href="/waiter" className="text-blue-600 text-sm">← Back</Link>
-          <h1 className="text-lg font-bold">Create Order</h1>
-          <div></div>
-        </div>
-      </div>
-
-      <div className="p-4 max-w-sm mx-auto pb-24">
-        {/* Customer Name */}
-        <div className="bg-white rounded-lg p-4 mb-4 shadow-sm">
-          <label className="block font-medium mb-2">Customer Name</label>
-          <input
-            type="text"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            placeholder="Guest name"
-            className="w-full p-3 border rounded-lg"
-          />
-        </div>
-
-        {/* Table Selection */}
-        <div className="bg-white rounded-lg p-4 mb-4 shadow-sm">
-          <label className="block font-medium mb-2">Select Table *</label>
-          <select
-            value={selectedTable}
-            onChange={(e) => setSelectedTable(e.target.value)}
-            className="w-full p-3 border rounded-lg text-lg"
-          >
-            <option value="">Choose Table</option>
-            {tables.filter(t => !t.is_occupied).map(table => (
-              <option key={table.id} value={table.id}>
-                Table {table.table_number} ({table.capacity} seats)
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Menu Items */}
-        <div className="bg-white rounded-lg p-4 mb-4 shadow-sm">
-          <h3 className="font-bold mb-3">Menu Items</h3>
-          
-          {menuItems.length > 0 ? (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {menuItems.map(item => (
-                <div key={item.id} className="flex justify-between items-center p-3 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="font-medium">{item.name_en}</div>
-                    {item.name_hi && <div className="text-sm text-gray-600">{item.name_hi}</div>}
-                    <div className="text-green-600 font-bold">₹{parseFloat(item.price).toFixed(0)}</div>
-                  </div>
-                  <button
-                    onClick={() => addToOrder(item)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 active:bg-blue-800"
-                  >
-                    Add
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-4">No menu items available</p>
-          )}
-        </div>
-
-        {/* Order Summary */}
-        {orderItems.length > 0 && (
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <h3 className="font-bold mb-3">Order Summary</h3>
-            <div className="space-y-3 mb-4">
-              {orderItems.map(item => (
-                <div key={item.menu_item.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                  <div className="flex-1">
-                    <div className="font-medium">{item.menu_item.name_en}</div>
-                    <div className="text-sm text-gray-600">₹{item.price} each</div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => updateQuantity(item.menu_item.id, item.quantity - 1)}
-                      className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300"
-                    >
-                      −
-                    </button>
-                    <span className="w-8 text-center font-medium">{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item.menu_item.id, item.quantity + 1)}
-                      className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="border-t pt-3">
-              <div className="flex justify-between items-center text-lg font-bold">
-                <span>Total:</span>
-                <span>₹{calculateTotal().toFixed(0)}</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Bottom Action */}
-      {orderItems.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white p-4 shadow-lg border-t">
-          <div className="max-w-sm mx-auto">
-            <button
-              onClick={submitOrder}
-              disabled={!selectedTable || orderItems.length === 0 || submitting}
-              className={`w-full py-4 rounded-lg text-lg font-bold ${
-                submitting 
-                  ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
-                  : 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800'
-              }`}
-            >
-              {submitting ? 'Creating Order...' : `Place Order (₹${calculateTotal().toFixed(0)})`}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default withRoleGuard(CreateOrder, ['admin', 'staff']);
-
-/////////////////////////////////////////////////////////////////////
-
-
-cd ~/hotel-management-frontend/hotel-management-frontend
-
-# 1. Create PWA manifest
-cat > public/manifest.json << 'EOF'
-[PASTE MANIFEST.JSON CONTENT]
 EOF
 
-# 2. Create PWA icons (temporary)
-cp public/logo.png public/icon-192.png
-cp public/logo.png public/icon-512.png
+echo "✅ Safe PWA setup complete - no broken icon references!"
 
-# 3. Create _document.js
-cat > pages/_document.js << 'EOF'
-[PASTE _DOCUMENT.JS CONTENT]
-EOF
-
-# 4. Backup and update next.config.js
-cp next.config.js next.config.js.backup
-cat > next.config.js << 'EOF'
-[PASTE NEXT.CONFIG.JS CONTENT]
-EOF
-
-
-////////////////////////////////////////////////////////
-
-
-# 1. Create waiter directory
-mkdir -p pages/waiter
-
-# 2. Create waiter dashboard
-cat > pages/waiter/index.js << 'EOF'
-[PASTE WAITER INDEX.JS CONTENT]
-EOF
-
-# 3. Create order creation page
-cat > pages/waiter/create-order.js << 'EOF'
-[PASTE CREATE-ORDER.JS CONTENT]
-EOF
-
-
-////////////////////////////////////////////////////////////
-
-
-# 1. Build application
+# 4. Test the build
+echo "ߧ Testing build..."
 npm run build
 
-# 2. Test locally
-npm start
-
-# 3. Test URLs:
-# - http://localhost:3000/waiter (waiter dashboard)  
-# - http://localhost:3000/waiter/create-order (order creation)
-
-////////////////////////////////////////////////////////////
-ubuntu@hotel-management-server:~/hotel-management-backend$ python manage.py dumpdata > backup_$(date +%Y%m%d_%H%M%S).json
-CommandError: Unable to serialize database: cursor "_django_curs_272598045709344_sync_8" does not exist
-ubuntu@hotel-management-server:~/hotel-management-backend$
+echo "ߚ If build succeeds, start with:"
+echo "npm start"
