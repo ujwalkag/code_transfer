@@ -896,3 +896,693 @@ npm run dev
 ✅ Error handling and loading states  
 
 This complete implementation will give you a professional kitchen display system that integrates seamlessly with your existing Django backend!
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# Complete Updated Files - Ready to Copy & Replace
+
+## 1. CREATE NEW FILE: `pages/kitchen/index.js`
+
+**Location**: `hotel-management-frontend/pages/kitchen/index.js`
+**Action**: Create new file
+
+```jsx
+// pages/kitchen/index.js
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import withRoleGuard from '@/hoc/withRoleGuard';
+
+function KitchenDisplay() {
+  const { user } = useAuth();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 20000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const fetchOrders = async () => {
+    if (!user?.access) return;
+    
+    try {
+      setError('');
+      const response = await fetch('/api/tables/kitchen/', {
+        headers: { Authorization: `Bearer ${user.access}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setOrders(Array.isArray(data) ? data : data.results || []);
+        setLastUpdated(new Date());
+      } else {
+        setError('Failed to load kitchen orders');
+      }
+    } catch (error) {
+      console.error('Error fetching kitchen orders:', error);
+      setError('Network error loading orders');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      const response = await fetch(`/api/tables/kitchen/${orderId}/update_status/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.access}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        // Show success feedback
+        const button = document.activeElement;
+        if (button) {
+          const originalText = button.textContent;
+          button.textContent = '✓ Updated!';
+          button.disabled = true;
+          setTimeout(() => {
+            if (button) {
+              button.textContent = originalText;
+              button.disabled = false;
+            }
+          }, 1500);
+        }
+        fetchOrders();
+      } else {
+        setError('Failed to update order status');
+      }
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      setError('Network error updating order');
+    }
+  };
+
+  const getOrderAge = (orderTime) => {
+    const now = new Date();
+    const ordered = new Date(orderTime);
+    const diffMinutes = Math.floor((now - ordered) / 60000);
+    return diffMinutes;
+  };
+
+  const getCardClass = (orderTime, status) => {
+    const age = getOrderAge(orderTime);
+    let baseClass = 'bg-white border-2 rounded-lg p-4 shadow-md transition-all hover:shadow-lg';
+    
+    if (age > 20) return `${baseClass} border-red-500 bg-red-50 animate-pulse`;
+    if (age > 10) return `${baseClass} border-orange-400 bg-orange-50`;
+    if (status === 'preparing') return `${baseClass} border-blue-400 bg-blue-50`;
+    if (status === 'ready') return `${baseClass} border-green-400 bg-green-50`;
+    return `${baseClass} border-gray-300`;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-xl font-semibold text-gray-700">Loading Kitchen Orders...</p>
+          <p className="text-gray-500 mt-2">Connecting to kitchen system...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const pendingOrders = orders.filter(o => o.order_item?.status === 'pending');
+  const preparingOrders = orders.filter(o => o.order_item?.status === 'preparing');
+  const readyOrders = orders.filter(o => o.order_item?.status === 'ready');
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* Header */}
+      <div className="bg-white shadow-lg border-b-4 border-blue-600 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto p-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800 flex items-center">
+                ߍ Kitchen Display
+                <span className="ml-3 text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full animate-pulse">
+                  LIVE
+                </span>
+              </h1>
+              <p className="text-gray-600 mt-1">
+                {orders.length} active orders • Last updated: {lastUpdated.toLocaleTimeString()}
+              </p>
+            </div>
+            
+            <div className="flex items-center space-x-6">
+              {/* Status Counts */}
+              <div className="flex space-x-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">{pendingOrders.length}</div>
+                  <div className="text-sm text-gray-500">New Orders</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{preparingOrders.length}</div>
+                  <div className="text-sm text-gray-500">Cooking</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{readyOrders.length}</div>
+                  <div className="text-sm text-gray-500">Ready</div>
+                </div>
+              </div>
+              
+              {/* Refresh Button */}
+              <button
+                onClick={fetchOrders}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+              >
+                ߔ Refresh
+              </button>
+            </div>
+          </div>
+
+          {/* Error Display */}
+          {error && (
+            <div className="mt-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded">
+              <div className="flex">
+                <span className="text-red-500 mr-2">❌</span>
+                <div>{error}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Orders Grid */}
+      <div className="max-w-7xl mx-auto p-4">
+        {orders.length === 0 ? (
+          <div className="bg-white rounded-xl p-12 text-center shadow-lg">
+            <div className="text-8xl mb-6">ߎ</div>
+            <h2 className="text-3xl font-bold text-gray-700 mb-4">All Orders Complete!</h2>
+            <p className="text-gray-500 text-lg">No pending orders in the kitchen right now</p>
+            <button
+              onClick={fetchOrders}
+              className="mt-6 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Check for New Orders
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {orders.map((order) => {
+              const orderItem = order.order_item || {};
+              const orderTime = orderItem.order_time || order.display_time;
+              const age = getOrderAge(orderTime);
+              
+              return (
+                <div key={order.id} className={getCardClass(orderTime, orderItem.status)}>
+                  {/* Order Header */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-800">
+                        ߍ️ Table {order.table_number}
+                      </h3>
+                      <p className="text-sm text-gray-600 font-medium">
+                        #{order.order_number}
+                      </p>
+                    </div>
+                    <div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                        age > 15 ? 'bg-red-500 text-white animate-pulse' : 
+                        age > 8 ? 'bg-orange-500 text-white' : 
+                        'bg-blue-500 text-white'
+                      }`}>
+                        {age > 15 ? 'ߚ' : '⏱️'} {age}min
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Order Item Details */}
+                  <div className="mb-4 bg-gray-50 rounded-lg p-3">
+                    <h4 className="font-bold text-lg text-gray-800 mb-2">
+                      {orderItem.menu_item_name || 'Menu Item'}
+                    </h4>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Quantity:</span>
+                      <span className="font-bold text-2xl bg-white px-3 py-1 rounded-lg shadow-sm">
+                        {orderItem.quantity || 1}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Special Instructions */}
+                  {orderItem.special_instructions && (
+                    <div className="mb-4 bg-yellow-100 border-l-4 border-yellow-500 p-3 rounded">
+                      <div className="flex items-start">
+                        <span className="text-yellow-600 mr-2 text-lg">ߓ</span>
+                        <p className="text-sm font-medium text-yellow-800">
+                          {orderItem.special_instructions}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Customer & Waiter Info */}
+                  <div className="mb-4 space-y-1 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                    <div className="flex items-center">
+                      <span className="mr-2">ߑ</span>
+                      <span>Customer: <strong>{order.customer_name || 'Guest'}</strong></span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="mr-2">ߑ‍ߒ</span>
+                      <span>Waiter: <strong>{order.waiter_name || 'Staff'}</strong></span>
+                    </div>
+                    {order.customer_count && (
+                      <div className="flex items-center">
+                        <span className="mr-2">ߑ</span>
+                        <span>Guests: <strong>{order.customer_count}</strong></span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="space-y-2">
+                    {orderItem.status === 'pending' && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'preparing')}
+                        className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-bold shadow-md hover:shadow-lg transform hover:scale-105"
+                      >
+                        ߔ Start Cooking
+                      </button>
+                    )}
+                    
+                    {orderItem.status === 'preparing' && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'ready')}
+                        className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-4 rounded-lg hover:from-green-600 hover:to-green-700 transition-all font-bold shadow-md hover:shadow-lg transform hover:scale-105"
+                      >
+                        ✅ Food Ready
+                      </button>
+                    )}
+                    
+                    {orderItem.status === 'ready' && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'served')}
+                        className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all font-bold shadow-md hover:shadow-lg transform hover:scale-105"
+                      >
+                        ߚ Mark Served
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Critical Alert */}
+                  {age > 15 && (
+                    <div className="mt-3 bg-red-600 text-white text-center py-2 rounded-lg font-bold animate-bounce">
+                      ߚ URGENT - Over 15 minutes!
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default withRoleGuard(KitchenDisplay, ['admin', 'staff']);
+```
+
+---
+
+## 2. UPDATE FILE: `components/layouts/AdminLayout.js`
+
+**Location**: `hotel-management-frontend/components/layouts/AdminLayout.js`
+**Action**: Replace entire file
+
+```jsx
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+
+export default function AdminLayout({ children }) {
+  const router = useRouter();
+  const [currentPath, setCurrentPath] = useState('');
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    setCurrentPath(router.pathname);
+    
+    // Get user from localStorage (same as your existing logic)
+    try {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        setUser(JSON.parse(userData));
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  }, [router.pathname]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    router.push('/login');
+  };
+
+  // Enhanced navigation items with Kitchen added
+  const navigation = [
+    {
+      name: 'Dashboard',
+      href: '/admin/dashboard',
+      icon: 'ߓ',
+      current: currentPath === '/admin/dashboard'
+    },
+    {
+      name: 'Kitchen',
+      href: '/kitchen',
+      icon: 'ߍ',
+      current: currentPath === '/kitchen'
+    },
+    {
+      name: 'Rooms',
+      href: '/admin/manage-rooms',
+      icon: 'ߏ',
+      current: currentPath === '/admin/manage-rooms'
+    },
+    {
+      name: 'Menu',
+      href: '/admin/manage-menu',
+      icon: 'ߍ️', 
+      current: currentPath === '/admin/manage-menu'
+    },
+    {
+      name: 'Orders',
+      href: '/admin/orders',
+      icon: 'ߓ',
+      current: currentPath === '/admin/orders'
+    },
+    {
+      name: 'Billing',
+      href: '/admin/billing',
+      icon: 'ߒ',
+      current: currentPath === '/admin/billing'
+    },
+    {
+      name: 'Inventory',
+      href: '/admin/inventory',
+      icon: 'ߓ',
+      current: currentPath.startsWith('/admin/inventory'),
+      children: [
+        {
+          name: 'Items',
+          href: '/admin/inventory',
+          icon: 'ߓ',
+          current: currentPath === '/admin/inventory'
+        },
+        {
+          name: 'Categories',
+          href: '/admin/inventory-categories', 
+          icon: 'ߏ️',
+          current: currentPath === '/admin/inventory-categories'
+        }
+      ]
+    }
+  ];
+
+  return (
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
+      <div className="w-64 bg-white shadow-lg">
+        <div className="p-4">
+          <h2 className="text-2xl font-bold text-gray-800 mb-8">Admin Panel</h2>
+          
+          <nav className="space-y-2">
+            {navigation.map((item) => (
+              <div key={item.name}>
+                <Link href={item.href}>
+                  <a className={`
+                    flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors
+                    ${item.current 
+                      ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    }
+                  `}>
+                    <span className="mr-3 text-lg">{item.icon}</span>
+                    {item.name}
+                  </a>
+                </Link>
+                
+                {/* Sub-navigation for items with children */}
+                {item.children && item.current && (
+                  <div className="ml-6 mt-2 space-y-1">
+                    {item.children.map((child) => (
+                      <Link key={child.name} href={child.href}>
+                        <a className={`
+                          flex items-center px-3 py-2 text-sm rounded-md transition-colors
+                          ${child.current 
+                            ? 'bg-blue-50 text-blue-600' 
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                          }
+                        `}>
+                          <span className="mr-2">{child.icon}</span>
+                          {child.name}
+                        </a>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </nav>
+
+          {/* User Info */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-medium">
+                    {user?.email?.charAt(0).toUpperCase() || 'A'}
+                  </span>
+                </div>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-700">
+                  {user?.email || 'Admin'}
+                </p>
+                <p className="text-xs text-gray-500">Admin</p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="mt-3 w-full bg-red-600 text-white text-sm py-2 px-3 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        {children}
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## 3. UPDATE FILE: `components/layouts/StaffLayout.js`
+
+**Location**: `hotel-management-frontend/components/layouts/StaffLayout.js`
+**Action**: Replace entire file
+
+```jsx
+// components/layouts/StaffLayout.js
+import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/router";
+
+export default function StaffLayout({ children }) {
+  const { logout, user } = useAuth();
+  const router = useRouter();
+
+  const navigation = [
+    {
+      name: 'Dashboard',
+      href: '/staff/dashboard',
+      icon: 'ߓ',
+      current: router.pathname === '/staff/dashboard'
+    },
+    {
+      name: 'Kitchen',
+      href: '/kitchen',
+      icon: 'ߍ',
+      current: router.pathname === '/kitchen'
+    },
+    {
+      name: 'Restaurant Billing',
+      href: '/staff/restaurant-billing',
+      icon: 'ߧ',
+      current: router.pathname === '/staff/restaurant-billing'
+    },
+    {
+      name: 'Room Billing',
+      href: '/staff/room-billing',
+      icon: 'ߏ',
+      current: router.pathname === '/staff/room-billing'
+    },
+    {
+      name: 'Bill History',
+      href: '/staff/bill-history',
+      icon: 'ߓ',
+      current: router.pathname === '/staff/bill-history'
+    },
+    {
+      name: 'Waiter Panel',
+      href: '/waiter',
+      icon: 'ߑ‍ߒ',
+      current: router.pathname === '/waiter'
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* Top Navigation */}
+      <nav className="bg-white shadow-lg border-b">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-gray-800">ߏ Staff Panel</h1>
+              <span className="ml-4 text-sm text-gray-500">Hotel Management System</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-gray-600">Welcome, <strong>{user?.email}</strong></span>
+              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                {user?.role || 'staff'}
+              </span>
+              <button
+                onClick={logout}
+                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+          
+          {/* Navigation Links */}
+          <div className="flex space-x-1 border-t pt-4 pb-2 overflow-x-auto">
+            {navigation.map((item) => (
+              <Link key={item.name} href={item.href}>
+                <a className={`
+                  flex items-center space-x-2 px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors
+                  ${item.current
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }
+                `}>
+                  <span className="text-lg">{item.icon}</span>
+                  <span>{item.name}</span>
+                </a>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="py-6">
+        {children}
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t mt-8">
+        <div className="max-w-7xl mx-auto px-4 py-3 text-center text-sm text-gray-500">
+          © 2025 Hotel Management System - Staff Operations
+        </div>
+      </footer>
+    </div>
+  );
+}
+```
+
+---
+
+## 4. UPDATE FILE: `components/Sidebar.js`
+
+**Location**: `hotel-management-frontend/components/Sidebar.js`
+**Action**: Replace entire file
+
+```jsx
+import Link from "next/link";
+import { useRouter } from "next/router";
+
+const Sidebar = () => {
+  const router = useRouter();
+
+  const navigation = [
+    { name: 'Dashboard', href: '/dashboard', icon: 'ߓ' },
+    { name: 'Kitchen', href: '/kitchen', icon: 'ߍ' },
+    { name: 'Menu Management', href: '/menu-management', icon: 'ߍ️' },
+    { name: 'Order History', href: '/order-history', icon: 'ߓ' },
+    { name: 'Notifications', href: '/notifications', icon: 'ߔ' }
+  ];
+
+  return (
+    <div className="w-64 bg-white shadow-lg min-h-screen">
+      <div className="p-4">
+        <h2 className="text-xl font-bold text-gray-800 mb-6">Admin Panel</h2>
+        <nav className="space-y-2">
+          {navigation.map((item) => (
+            <Link key={item.name} href={item.href}>
+              <a className={`
+                flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-colors
+                ${router.pathname === item.href
+                  ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }
+              `}>
+                <span className="text-lg">{item.icon}</span>
+                <span>{item.name}</span>
+              </a>
+            </Link>
+          ))}
+        </nav>
+      </div>
+    </div>
+  );
+};
+
+export default Sidebar;
+```
+
+---
+
+## ߚ **Implementation Steps**
+
+### Step 1: Create Kitchen Directory
+```bash
+cd hotel-management-frontend
+mkdir -p pages/kitchen
+```
+
+### Step 2: Copy Files
+1. **Create** `pages/kitchen/index.js` with the kitchen display code above
+2. **Replace** `components/layouts/AdminLayout.js` with the updated version above  
+3. **Replace** `components/layouts/StaffLayout.js` with the updated version above
+4. **Replace** `components/Sidebar.js` with the updated version above
+
+### Step 3: Test
+```bash
+npm run dev
+# Login as admin or staff
+# Navigate to /kitchen
+```
+
+## ✅ **What You Get**
+
+- **Kitchen Display**: Real-time order management with visual priorities
+- **Admin Navigation**: Kitchen link added to admin sidebar
+- **Staff Navigation**: Enhanced staff layout with kitchen access
+- **General Sidebar**: Kitchen link for general layouts
+
+**Ready to copy these files?** ߍ
