@@ -1,2 +1,664 @@
-ken Response: {refresh: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90e…luIn0.p2uIefPBKGfsZWamylsiq6y1J_bxu89WAma0qtnAm-g', access: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90e…W4ifQ.ZROJPGhELnmUdp8UAp5m86kF9XWAq_g9oEt1bu5g6rY', email: 'admin@hotel.com', role: 'admin'}
-VM141:21 
+# Complete Staff Management & Kitchen Fixes
+
+## ߚ **IDENTIFIED ISSUES**
+
+### **Issue 1: Staff Management API Error**
+**Problem:** `TypeError: t.map is not a function` in `manage-staff.js`
+
+**Root Cause:** The API `/api/users/staff/` is returning wrong data format
+- **Frontend expects:** Array `[{id: 1, email: "user@example.com"}, ...]`
+- **Backend returns:** Object `{count: 5, results: [...]}` or non-array data
+
+### **Issue 2: Menu API 400 Error**
+**Problem:** `/api/menu/items/` returning 400 Bad Request
+**Root Cause:** Authentication or API endpoint mismatch
+
+### **Issue 3: Kitchen Frontend Missing**
+**Problem:** Kitchen page doesn't exist in production frontend
+
+---
+
+## ߔ **IMMEDIATE FIXES**
+
+### **Fix 1: Staff Management API Response**
+
+The error occurs because your staff API returns a non-array. Let's fix the frontend code:
+
+**UPDATE:** `pages/admin/manage-staff.js`
+
+```javascript
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import withRoleGuard from "@/hoc/withRoleGuard";
+
+function ManageStaff() {
+  const { user } = useAuth();
+  const [staff, setStaff] = useState([]);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const fetchStaff = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/users/staff/", {
+        headers: {
+          Authorization: `Bearer ${user?.access}`,
+        },
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Staff API Response:', data); // Debug log
+        
+        // ✅ FIX: Handle different response formats
+        if (Array.isArray(data)) {
+          setStaff(data);
+        } else if (data.results && Array.isArray(data.results)) {
+          setStaff(data.results);
+        } else if (data.count !== undefined) {
+          setStaff([]); // Empty array if no results
+        } else {
+          console.error('Unexpected staff data format:', data);
+          setStaff([]);
+        }
+      } else {
+        console.error('Staff API error:', res.status, res.statusText);
+        setStaff([]);
+      }
+    } catch (err) {
+      console.error("Error fetching staff list:", err);
+      setStaff([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addStaff = async () => {
+    if (!email || !password) {
+      setMessage("❌ Email and password required");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await fetch("/api/users/staff/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user?.access}`,
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setMessage("✅ Staff added successfully");
+        setEmail("");
+        setPassword("");
+        fetchStaff();
+      } else {
+        const data = await res.json();
+        setMessage(`❌ Error: ${data?.error || "Something went wrong"}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage("❌ Network error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteStaff = async (id) => {
+    if (!confirm('Are you sure you want to delete this staff member?')) return;
+    
+    try {
+      const res = await fetch(`/api/users/staff/${id}/`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${user?.access}`,
+        },
+      });
+      
+      if (res.ok) {
+        setMessage("✅ Staff deleted successfully");
+        fetchStaff();
+      } else {
+        setMessage("❌ Failed to delete staff");
+      }
+    } catch (err) {
+      console.error("Failed to delete staff:", err);
+      setMessage("❌ Network error during deletion");
+    }
+  };
+
+  useEffect(() => {
+    if (user?.access) fetchStaff();
+  }, [user]);
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">ߑ Manage Staff</h1>
+
+      {/* Add Staff Form */}
+      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <h2 className="text-xl font-semibold mb-4">➕ Add Staff</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="border px-4 py-2 rounded w-full"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="border px-4 py-2 rounded w-full"
+          />
+          <button
+            onClick={addStaff}
+            disabled={loading}
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loading ? 'Adding...' : 'Add Staff'}
+          </button>
+        </div>
+        {message && (
+          <div className={`mt-4 p-3 rounded ${message.includes('✅') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            {message}
+          </div>
+        )}
+      </div>
+
+      {/* Staff List */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold mb-4">ߓ Staff List</h2>
+        
+        {loading ? (
+          <div className="text-center py-4">Loading staff...</div>
+        ) : (
+          <div className="space-y-2">
+            {Array.isArray(staff) && staff.length > 0 ? (
+              staff.map((s) => (
+                <div key={s.id} className="flex justify-between items-center p-3 border rounded">
+                  <div>
+                    <span className="font-medium">{s.email}</span>
+                    <span className="text-gray-500 ml-2">({s.role || 'staff'})</span>
+                  </div>
+                  <button
+                    onClick={() => deleteStaff(s.id)}
+                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="text-gray-500 text-center py-4">
+                No staff members found
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default withRoleGuard(ManageStaff, ["admin"]);
+```
+
+---
+
+### **Fix 2: Create Kitchen Page**
+
+**CREATE FILE:** `pages/kitchen/index.js`
+
+```javascript
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import withRoleGuard from '@/hoc/withRoleGuard';
+
+function KitchenDisplay() {
+  const { user } = useAuth();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [audioEnabled, setAudioEnabled] = useState(false);
+
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 20000); // 20 second refresh
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const fetchOrders = async () => {
+    if (!user?.access) return;
+    
+    try {
+      setError('');
+      const response = await fetch('/api/tables/kitchen/', {
+        headers: { 
+          Authorization: `Bearer ${user.access}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Kitchen API Response:', data); // Debug log
+        
+        const ordersArray = Array.isArray(data) ? data : [];
+        setOrders(ordersArray);
+        setLastUpdated(new Date());
+        
+        // Audio notification for new orders
+        if (audioEnabled && ordersArray.length > 0) {
+          playNotificationSound();
+        }
+      } else {
+        setError(`Failed to load orders: ${response.status} ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Kitchen fetch error:', error);
+      setError('Network error loading orders');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      const response = await fetch(`/api/tables/kitchen/${orderId}/update_status/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.access}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        fetchOrders(); // Refresh orders
+      } else {
+        setError('Failed to update order status');
+      }
+    } catch (error) {
+      console.error('Status update error:', error);
+      setError('Network error updating status');
+    }
+  };
+
+  const playNotificationSound = () => {
+    // Simple beep sound (you can replace with actual audio file)
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'square';
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending': return 'bg-red-100 border-red-500 text-red-800';
+      case 'preparing': return 'bg-yellow-100 border-yellow-500 text-yellow-800';
+      case 'ready': return 'bg-green-100 border-green-500 text-green-800';
+      default: return 'bg-gray-100 border-gray-500 text-gray-800';
+    }
+  };
+
+  const getOrderAge = (orderTime) => {
+    const now = new Date();
+    const created = new Date(orderTime);
+    const diffMinutes = Math.floor((now - created) / (1000 * 60));
+    return diffMinutes;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-xl font-semibold text-gray-700">Loading Kitchen Orders...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter orders by status
+  const pendingOrders = orders.filter(order => order.order_item?.status === 'pending');
+  const preparingOrders = orders.filter(order => order.order_item?.status === 'preparing');
+  const readyOrders = orders.filter(order => order.order_item?.status === 'ready');
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* Header */}
+      <div className="bg-white shadow-lg border-b-4 border-blue-600">
+        <div className="max-w-7xl mx-auto p-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">ߍ Kitchen Display</h1>
+              <p className="text-gray-600">
+                {orders.length} total orders • Last updated: {lastUpdated.toLocaleTimeString()}
+              </p>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setAudioEnabled(!audioEnabled)}
+                className={`px-4 py-2 rounded ${audioEnabled ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-700'}`}
+              >
+                ߔ Audio {audioEnabled ? 'ON' : 'OFF'}
+              </button>
+              <button
+                onClick={fetchOrders}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                ߔ Refresh
+              </button>
+            </div>
+          </div>
+          
+          {error && (
+            <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Status Summary */}
+      <div className="max-w-7xl mx-auto p-4">
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-red-100 p-4 rounded-lg text-center">
+            <h3 className="text-2xl font-bold text-red-800">{pendingOrders.length}</h3>
+            <p className="text-red-600">Pending Orders</p>
+          </div>
+          <div className="bg-yellow-100 p-4 rounded-lg text-center">
+            <h3 className="text-2xl font-bold text-yellow-800">{preparingOrders.length}</h3>
+            <p className="text-yellow-600">Preparing</p>
+          </div>
+          <div className="bg-green-100 p-4 rounded-lg text-center">
+            <h3 className="text-2xl font-bold text-green-800">{readyOrders.length}</h3>
+            <p className="text-green-600">Ready to Serve</p>
+          </div>
+        </div>
+
+        {/* Orders Display */}
+        {orders.length === 0 ? (
+          <div className="bg-white rounded-lg p-12 text-center">
+            <div className="text-6xl mb-4">ߎ</div>
+            <h2 className="text-2xl font-bold text-gray-700 mb-2">All Orders Complete!</h2>
+            <p className="text-gray-500">No pending orders in the kitchen</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {orders.map((order) => {
+              const orderAge = getOrderAge(order.display_time || order.order_item?.order_time);
+              const isUrgent = orderAge > 20;
+              
+              return (
+                <div
+                  key={order.id}
+                  className={`bg-white border-2 rounded-lg p-4 shadow-md ${getStatusColor(order.order_item?.status)} ${isUrgent ? 'animate-pulse border-red-600' : ''}`}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="text-lg font-bold">Table {order.table_number}</h3>
+                      <p className="text-sm text-gray-600">Order #{order.order_number}</p>
+                    </div>
+                    {isUrgent && (
+                      <span className="bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">
+                        URGENT
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mb-3">
+                    <p className="font-semibold">{order.order_item?.menu_item?.name_en}</p>
+                    <p className="text-sm text-gray-600">Qty: {order.order_item?.quantity}</p>
+                    {order.order_item?.special_instructions && (
+                      <p className="text-sm italic text-blue-600">
+                        Note: {order.order_item.special_instructions}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mb-3 text-sm text-gray-600">
+                    <p>Customer: {order.customer_name}</p>
+                    <p>Waiter: {order.waiter_name}</p>
+                    <p>Age: {orderAge} minutes</p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {order.order_item?.status === 'pending' && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'preparing')}
+                        className="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600"
+                      >
+                        Start Cooking
+                      </button>
+                    )}
+                    {order.order_item?.status === 'preparing' && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'ready')}
+                        className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600"
+                      >
+                        Food Ready
+                      </button>
+                    )}
+                    {order.order_item?.status === 'ready' && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'served')}
+                        className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
+                      >
+                        Mark Served
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default withRoleGuard(KitchenDisplay, ['admin', 'staff']);
+```
+
+---
+
+### **Fix 3: Update AdminLayout with Kitchen Link**
+
+**UPDATE:** `components/layouts/AdminLayout.js`
+
+Find the navigation array and add the Kitchen link:
+
+```javascript
+const navigation = [
+  {
+    name: 'Dashboard',
+    href: '/admin/dashboard',
+    icon: 'ߓ',
+    current: currentPath === '/admin/dashboard'
+  },
+  {
+    name: 'Kitchen',           // ← ADD THIS
+    href: '/kitchen',          // ← ADD THIS
+    icon: 'ߍ',               // ← ADD THIS
+    current: currentPath === '/kitchen'  // ← ADD THIS
+  },
+  // ... your existing items
+  {
+    name: 'Manage Staff',
+    href: '/admin/manage-staff',
+    icon: 'ߑ',
+    current: currentPath === '/admin/manage-staff'
+  },
+  // ... rest of your navigation items
+];
+```
+
+---
+
+### **Fix 4: Create Kitchen Service**
+
+**CREATE FILE:** `services/kitchenService.js`
+
+```javascript
+const kitchenService = {
+  async getOrders(token) {
+    const response = await fetch('/api/tables/kitchen/', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch orders: ${response.statusText}`);
+    }
+    
+    return response.json();
+  },
+
+  async updateOrderStatus(token, orderId, status) {
+    const response = await fetch(`/api/tables/kitchen/${orderId}/update_status/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to update status: ${response.statusText}`);
+    }
+    
+    return response.json();
+  },
+
+  async getSummary(token) {
+    const response = await fetch('/api/tables/kitchen/summary/', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch summary: ${response.statusText}`);
+    }
+    
+    return response.json();
+  },
+
+  async bulkUpdateOrders(token, updates) {
+    const response = await fetch('/api/tables/kitchen/bulk_update/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ updates }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to bulk update: ${response.statusText}`);
+    }
+    
+    return response.json();
+  },
+};
+
+export default kitchenService;
+```
+
+---
+
+## ߧ **COMPREHENSIVE API TESTING COMMANDS**
+
+### **Test All APIs in Browser Console:**
+
+```javascript
+// Test all APIs after login
+const token = localStorage.getItem('access');
+
+const testAllAPIs = async () => {
+  const tests = [
+    { name: 'Kitchen Orders', url: '/api/tables/kitchen/' },
+    { name: 'Staff Management', url: '/api/users/staff/' },
+    { name: 'Menu Items', url: '/api/menu/items/' },
+    { name: 'Tables', url: '/api/tables/' },
+    { name: 'Bills', url: '/api/bills/' }
+  ];
+  
+  console.log('=== API TESTING RESULTS ===');
+  
+  for (const test of tests) {
+    try {
+      const response = await fetch(test.url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const status = response.status;
+      const data = await response.json();
+      
+      console.log(`${test.name}: ${status} ${response.statusText}`);
+      console.log(`Data:`, data);
+      console.log('---');
+      
+    } catch (error) {
+      console.error(`${test.name}: ERROR`, error);
+    }
+  }
+};
+
+testAllAPIs();
+```
+
+---
+
+## ߚ **IMMEDIATE ACTION PLAN**
+
+### **Step 1: Apply Fixes**
+1. **Update manage-staff.js** with the fixed code above
+2. **Create pages/kitchen/index.js** with the kitchen display code
+3. **Create services/kitchenService.js** with the API service
+4. **Update AdminLayout.js** with Kitchen navigation link
+
+### **Step 2: Test APIs**
+Run the comprehensive API testing script above and share results
+
+### **Step 3: Rebuild Frontend**
+```bash
+cd hotel-management-frontend
+rm -rf .next/
+npm run dev
+```
+
+### **Step 4: Test Pages**
+1. Visit `/admin/manage-staff` - Should show staff without errors
+2. Visit `/kitchen` - Should show kitchen display
+3. Check admin sidebar - Should have Kitchen link
+
+**Run the API tests and tell me the exact results!** ߔ
