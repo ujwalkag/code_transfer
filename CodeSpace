@@ -1,11 +1,2 @@
-ubuntu@hotel-management-server:~$ sudo journalctl -u gunicorn -f
-Sep 02 15:08:29 hotel-management-server systemd[1]: Started gunicorn daemon for hotel-management-backend.
-Sep 02 15:08:29 hotel-management-server gunicorn[2640706]: [2025-09-02 15:08:29 +0000] [2640706] [INFO] Starting gunicorn 23.0.0
-Sep 02 15:08:29 hotel-management-server gunicorn[2640706]: [2025-09-02 15:08:29 +0000] [2640706] [INFO] Listening at: http://127.0.0.1:8000 (2640706)
-Sep 02 15:08:29 hotel-management-server gunicorn[2640706]: [2025-09-02 15:08:29 +0000] [2640706] [INFO] Using worker: sync
-Sep 02 15:08:29 hotel-management-server gunicorn[2640710]: [2025-09-02 15:08:29 +0000] [2640710] [INFO] Booting worker with pid: 2640710
-Sep 02 15:08:29 hotel-management-server gunicorn[2640711]: [2025-09-02 15:08:29 +0000] [2640711] [INFO] Booting worker with pid: 2640711
-Sep 02 15:08:29 hotel-management-server gunicorn[2640712]: [2025-09-02 15:08:29 +0000] [2640712] [INFO] Booting worker with pid: 2640712
-Sep 02 15:13:10 hotel-management-server gunicorn[2640710]: Failed WhatsApp to whatsapp:+917697480580: HTTP 400 error: Unable to create record: Twilio could not find a Channel with the specified From address
-Sep 02 15:13:23 hotel-management-server gunicorn[2640710]: Bad Request: /api/menu/items/
-Sep 02 15:15:48 hotel-management-server gunicorn[2640712]: Failed WhatsApp to whatsapp:+917697480580: HTTP 400 error: Unable to create record: Twilio could not find a Channel with the specified From address
+ken Response: {refresh: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90e…luIn0.p2uIefPBKGfsZWamylsiq6y1J_bxu89WAma0qtnAm-g', access: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90e…W4ifQ.ZROJPGhELnmUdp8UAp5m86kF9XWAq_g9oEt1bu5g6rY', email: 'admin@hotel.com', role: 'admin'}
+VM141:21 
