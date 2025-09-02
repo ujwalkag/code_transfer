@@ -1,8 +1,7 @@
-# Complete Implementation: Kitchen Display + Route Mapping
+# Complete Kitchen Display Implementation - All Files
 
-## Step 1: Create Kitchen Display Screen
-
-### Create `pages/kitchen/index.js`:
+## 1. Kitchen Display Screen
+**File: `pages/kitchen/index.js`**
 
 ```jsx
 // pages/kitchen/index.js
@@ -14,8 +13,9 @@ function KitchenDisplay() {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
   const [error, setError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [audioEnabled, setAudioEnabled] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -35,7 +35,14 @@ function KitchenDisplay() {
       
       if (response.ok) {
         const data = await response.json();
-        setOrders(Array.isArray(data) ? data : data.results || []);
+        const newOrders = Array.isArray(data) ? data : data.results || [];
+        
+        // Play sound for new orders if audio enabled
+        if (audioEnabled && newOrders.length > orders.length) {
+          playNotificationSound();
+        }
+        
+        setOrders(newOrders);
         setLastUpdated(new Date());
       } else {
         setError('Failed to load kitchen orders');
@@ -62,22 +69,25 @@ function KitchenDisplay() {
       if (response.ok) {
         // Show success feedback
         const button = document.activeElement;
-        const originalText = button.textContent;
-        const originalColor = button.style.backgroundColor;
-        
-        button.textContent = '✓ Updated!';
-        button.style.backgroundColor = '#10B981';
-        button.disabled = true;
+        if (button) {
+          const originalText = button.textContent;
+          const originalBg = button.className;
+          
+          button.textContent = '✓ Updated!';
+          button.className = originalBg.replace(/bg-\w+-\d+/, 'bg-green-500');
+          button.disabled = true;
+          
+          setTimeout(() => {
+            if (button) {
+              button.textContent = originalText;
+              button.className = originalBg;
+              button.disabled = false;
+            }
+          }, 1500);
+        }
         
         // Refresh orders
-        setTimeout(() => {
-          fetchOrders();
-          if (button) {
-            button.textContent = originalText;
-            button.style.backgroundColor = originalColor;
-            button.disabled = false;
-          }
-        }, 1500);
+        setTimeout(fetchOrders, 500);
       } else {
         setError('Failed to update order status');
       }
@@ -87,6 +97,13 @@ function KitchenDisplay() {
     }
   };
 
+  const playNotificationSound = () => {
+    try {
+      const audio = new Audio('/notification.mp3'); // Add this sound file to public folder
+      audio.play().catch(() => {}); // Ignore errors if sound fails
+    } catch (e) {}
+  };
+
   const getOrderAge = (orderTime) => {
     const now = new Date();
     const ordered = new Date(orderTime);
@@ -94,71 +111,47 @@ function KitchenDisplay() {
     return diffMinutes;
   };
 
-  const getPriorityLevel = (orderTime) => {
+  const getPriorityClass = (orderTime, status) => {
     const age = getOrderAge(orderTime);
-    if (age > 25) return 'critical';
-    if (age > 15) return 'urgent';
-    if (age > 8) return 'high';
-    return 'normal';
-  };
-
-  const getOrderCardClass = (order) => {
-    const priority = getPriorityLevel(order.order_item?.order_time || order.display_time);
-    const status = order.order_item?.status || 'pending';
+    let baseClass = 'border-2 rounded-xl p-4 shadow-lg transition-all duration-300';
     
-    let baseClass = 'bg-white border-2 rounded-xl p-4 shadow-lg transition-all duration-300 hover:shadow-xl';
-    
-    if (priority === 'critical') {
-      baseClass += ' border-red-600 bg-red-50 animate-pulse ring-2 ring-red-400';
-    } else if (priority === 'urgent') {
-      baseClass += ' border-red-400 bg-red-50';
-    } else if (priority === 'high') {
-      baseClass += ' border-orange-400 bg-orange-50';
+    if (age > 25) {
+      return `${baseClass} border-red-600 bg-red-50 animate-pulse ring-2 ring-red-400`;
+    } else if (age > 15) {
+      return `${baseClass} border-red-400 bg-red-50`;
+    } else if (age > 8) {
+      return `${baseClass} border-orange-400 bg-orange-50`;
     } else if (status === 'preparing') {
-      baseClass += ' border-blue-500 bg-blue-50';
+      return `${baseClass} border-blue-500 bg-blue-50`;
     } else if (status === 'ready') {
-      baseClass += ' border-green-500 bg-green-50';
+      return `${baseClass} border-green-500 bg-green-50`;
     } else {
-      baseClass += ' border-gray-300 hover:border-gray-400';
+      return `${baseClass} border-gray-300 bg-white`;
     }
-    
-    return baseClass;
   };
 
-  const getPriorityBadge = (orderTime) => {
-    const priority = getPriorityLevel(orderTime);
+  const getTimeBadge = (orderTime) => {
     const age = getOrderAge(orderTime);
+    let badgeClass = 'px-3 py-1 rounded-full text-xs font-bold';
     
-    if (priority === 'critical') {
-      return (
-        <div className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse">
-          ߚ CRITICAL - {age}min
-        </div>
-      );
-    } else if (priority === 'urgent') {
-      return (
-        <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-          ⚠️ URGENT - {age}min
-        </div>
-      );
-    } else if (priority === 'high') {
-      return (
-        <div className="bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-          ߔ {age}min
-        </div>
-      );
+    if (age > 20) {
+      badgeClass += ' bg-red-600 text-white animate-pulse';
+    } else if (age > 10) {
+      badgeClass += ' bg-orange-500 text-white';
     } else {
-      return (
-        <div className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs">
-          ⏱️ {age}min
-        </div>
-      );
+      badgeClass += ' bg-blue-500 text-white';
     }
+    
+    return (
+      <span className={badgeClass}>
+        {age > 20 ? 'ߚ' : age > 10 ? '⚠️' : '⏱️'} {age}min
+      </span>
+    );
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
         <div className="text-center bg-white p-8 rounded-xl shadow-lg">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
           <p className="text-xl font-semibold text-gray-700">Loading Kitchen Orders...</p>
@@ -168,49 +161,64 @@ function KitchenDisplay() {
     );
   }
 
-  // Group orders by status for better organization
+  // Group orders by status
   const pendingOrders = orders.filter(o => o.order_item?.status === 'pending');
   const preparingOrders = orders.filter(o => o.order_item?.status === 'preparing');
   const readyOrders = orders.filter(o => o.order_item?.status === 'ready');
   const totalActiveOrders = pendingOrders.length + preparingOrders.length + readyOrders.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       {/* Header */}
-      <div className="bg-white shadow-lg border-b-4 border-blue-600 p-4 mb-6">
-        <div className="max-w-7xl mx-auto">
+      <div className="bg-white shadow-lg border-b-4 border-blue-600 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto p-4">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-4xl font-bold text-gray-800 flex items-center">
+              <h1 className="text-3xl font-bold text-gray-800 flex items-center">
                 ߍ Kitchen Display
-                <span className="ml-3 text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+                <span className="ml-3 text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full animate-pulse">
                   LIVE
                 </span>
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-gray-600">
                 {totalActiveOrders} active orders • Last updated: {lastUpdated.toLocaleTimeString()}
               </p>
             </div>
             
-            {/* Status Summary */}
-            <div className="flex space-x-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-red-600">{pendingOrders.length}</div>
-                <div className="text-sm text-gray-500 font-medium">New Orders</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600">{preparingOrders.length}</div>
-                <div className="text-sm text-gray-500 font-medium">Cooking</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">{readyOrders.length}</div>
-                <div className="text-sm text-gray-500 font-medium">Ready</div>
+            {/* Controls */}
+            <div className="flex items-center space-x-4">
+              {/* Audio Toggle */}
+              <button
+                onClick={() => setAudioEnabled(!audioEnabled)}
+                className={`px-3 py-2 rounded-lg font-medium ${
+                  audioEnabled 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {audioEnabled ? 'ߔ' : 'ߔ'} Sound
+              </button>
+              
+              {/* Status Counts */}
+              <div className="flex space-x-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">{pendingOrders.length}</div>
+                  <div className="text-xs text-gray-500">Pending</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{preparingOrders.length}</div>
+                  <div className="text-xs text-gray-500">Cooking</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{readyOrders.length}</div>
+                  <div className="text-xs text-gray-500">Ready</div>
+                </div>
               </div>
               
               {/* Refresh Button */}
               <button
                 onClick={fetchOrders}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg font-semibold"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
               >
                 ߔ Refresh
               </button>
@@ -221,7 +229,7 @@ function KitchenDisplay() {
           {error && (
             <div className="mt-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded">
               <div className="flex">
-                <div className="text-red-500 mr-2">❌</div>
+                <span className="text-red-500 mr-2">❌</span>
                 <div>{error}</div>
               </div>
             </div>
@@ -229,7 +237,8 @@ function KitchenDisplay() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 pb-8">
+      {/* Orders Display */}
+      <div className="max-w-7xl mx-auto p-4">
         {totalActiveOrders === 0 ? (
           <div className="bg-white rounded-xl p-12 text-center shadow-lg">
             <div className="text-8xl mb-6">ߎ</div>
@@ -246,12 +255,13 @@ function KitchenDisplay() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {orders.map((order) => {
               const orderItem = order.order_item || {};
-              const orderTime = orderItem.order_time || order.display_time;
+              const orderTime = orderItem.order_time || order.display_time || new Date();
+              const age = getOrderAge(orderTime);
               
               return (
-                <div key={order.id} className={getOrderCardClass(order)}>
+                <div key={order.id} className={getPriorityClass(orderTime, orderItem.status)}>
                   {/* Order Header */}
-                  <div className="flex justify-between items-start mb-4">
+                  <div className="flex justify-between items-start mb-3">
                     <div>
                       <h3 className="text-xl font-bold text-gray-800">
                         ߍ️ Table {order.table_number}
@@ -260,19 +270,19 @@ function KitchenDisplay() {
                         #{order.order_number}
                       </p>
                     </div>
-                    <div className="text-right">
-                      {getPriorityBadge(orderTime)}
+                    <div>
+                      {getTimeBadge(orderTime)}
                     </div>
                   </div>
 
-                  {/* Order Item Details */}
+                  {/* Order Details */}
                   <div className="mb-4 bg-gray-50 rounded-lg p-3">
                     <h4 className="font-bold text-lg text-gray-800 mb-2">
                       {orderItem.menu_item_name || 'Menu Item'}
                     </h4>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Quantity:</span>
-                      <span className="font-bold text-xl bg-white px-3 py-1 rounded-lg shadow-sm">
+                      <span className="font-bold text-2xl bg-white px-3 py-1 rounded-lg shadow-sm">
                         {orderItem.quantity || 1}
                       </span>
                     </div>
@@ -282,7 +292,7 @@ function KitchenDisplay() {
                   {orderItem.special_instructions && (
                     <div className="mb-4 bg-yellow-100 border-l-4 border-yellow-500 p-3 rounded">
                       <div className="flex items-start">
-                        <span className="text-yellow-600 mr-2">ߓ</span>
+                        <span className="text-yellow-600 mr-2 text-lg">ߓ</span>
                         <p className="text-sm font-medium text-yellow-800">
                           {orderItem.special_instructions}
                         </p>
@@ -290,8 +300,8 @@ function KitchenDisplay() {
                     </div>
                   )}
 
-                  {/* Customer & Waiter Info */}
-                  <div className="mb-4 space-y-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                  {/* Customer Info */}
+                  <div className="mb-4 space-y-1 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
                     <div className="flex items-center">
                       <span className="mr-2">ߑ</span>
                       <span>Customer: <strong>{order.customer_name || 'Guest'}</strong></span>
@@ -302,7 +312,7 @@ function KitchenDisplay() {
                     </div>
                     {order.customer_count && (
                       <div className="flex items-center">
-                        <span className="mr-2">ߪ</span>
+                        <span className="mr-2">ߑ</span>
                         <span>Guests: <strong>{order.customer_count}</strong></span>
                       </div>
                     )}
@@ -313,7 +323,7 @@ function KitchenDisplay() {
                     {orderItem.status === 'pending' && (
                       <button
                         onClick={() => updateOrderStatus(order.id, 'preparing')}
-                        className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-bold text-lg shadow-md hover:shadow-lg transform hover:scale-105"
+                        className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-bold shadow-md hover:shadow-lg transform hover:scale-105"
                       >
                         ߔ Start Cooking
                       </button>
@@ -322,7 +332,7 @@ function KitchenDisplay() {
                     {orderItem.status === 'preparing' && (
                       <button
                         onClick={() => updateOrderStatus(order.id, 'ready')}
-                        className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-4 rounded-lg hover:from-green-600 hover:to-green-700 transition-all font-bold text-lg shadow-md hover:shadow-lg transform hover:scale-105"
+                        className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-4 rounded-lg hover:from-green-600 hover:to-green-700 transition-all font-bold shadow-md hover:shadow-lg transform hover:scale-105"
                       >
                         ✅ Food Ready
                       </button>
@@ -331,17 +341,17 @@ function KitchenDisplay() {
                     {orderItem.status === 'ready' && (
                       <button
                         onClick={() => updateOrderStatus(order.id, 'served')}
-                        className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all font-bold text-lg shadow-md hover:shadow-lg transform hover:scale-105"
+                        className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all font-bold shadow-md hover:shadow-lg transform hover:scale-105"
                       >
                         ߚ Mark Served
                       </button>
                     )}
                   </div>
 
-                  {/* Critical Priority Alert */}
-                  {getPriorityLevel(orderTime) === 'critical' && (
+                  {/* Critical Alert */}
+                  {age > 20 && (
                     <div className="mt-3 bg-red-600 text-white text-center py-2 rounded-lg font-bold animate-bounce">
-                      ߚ CRITICAL DELAY - RUSH ORDER!
+                      ߚ URGENT - Over 20 minutes!
                     </div>
                   )}
                 </div>
@@ -357,350 +367,532 @@ function KitchenDisplay() {
 export default withRoleGuard(KitchenDisplay, ['admin', 'staff']);
 ```
 
-## Step 2: Add Kitchen Navigation
+## 2. Kitchen Service Helper
+**File: `services/kitchenService.js`**
 
-### Update your main navigation component (likely in `components/Layout.js` or similar):
+```javascript
+// services/kitchenService.js
+const API_BASE = '/api';
+
+export const kitchenService = {
+  // Get all kitchen orders
+  getOrders: async (token) => {
+    const response = await fetch(`${API_BASE}/tables/kitchen/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch kitchen orders');
+    }
+    return response.json();
+  },
+
+  // Update order status
+  updateOrderStatus: async (token, orderId, status) => {
+    const response = await fetch(`${API_BASE}/tables/kitchen/${orderId}/update_status/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ status })
+    });
+    if (!response.ok) {
+      throw new Error('Failed to update order status');
+    }
+    return response.json();
+  },
+
+  // Get kitchen summary stats
+  getSummary: async (token) => {
+    const response = await fetch(`${API_BASE}/tables/kitchen/summary/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.json();
+  },
+
+  // Bulk update orders
+  bulkUpdateOrders: async (token, updates) => {
+    const response = await fetch(`${API_BASE}/tables/kitchen/bulk_update/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ updates })
+    });
+    return response.json();
+  }
+};
+
+export default kitchenService;
+```
+
+## 3. Enhanced Navigation Component
+**File: `components/KitchenNavigation.js`**
 
 ```jsx
-// In your navigation component
+// components/KitchenNavigation.js
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useAuth } from '@/context/AuthContext';
 
-export default function Navigation() {
+export default function KitchenNavigation() {
   const { user } = useAuth();
+  const router = useRouter();
+
+  const navigationItems = [
+    {
+      href: '/kitchen',
+      label: 'ߍ Kitchen Display',
+      roles: ['admin', 'staff'],
+      description: 'Real-time order management'
+    },
+    {
+      href: '/waiter',
+      label: 'ߑ‍ߒ Waiter Panel',
+      roles: ['admin', 'staff', 'waiter'],
+      description: 'Table and order management'
+    },
+    {
+      href: '/staff/restaurant-billing',
+      label: 'ߧ Restaurant Billing',
+      roles: ['admin', 'staff', 'biller'],
+      description: 'Generate bills and invoices'
+    },
+    {
+      href: '/admin/restaurant-orders',
+      label: 'ߓ Order History',
+      roles: ['admin'],
+      description: 'View order history and analytics'
+    }
+  ];
+
+  const visibleItems = navigationItems.filter(item => 
+    item.roles.includes(user?.role)
+  );
 
   return (
-    <nav className="navigation">
-      {/* Existing navigation items */}
-      
-      {/* Add Kitchen link for admin and staff */}
-      {(user?.role === 'admin' || user?.role === 'staff') && (
-        <Link href="/kitchen">
-          <a className="nav-item flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-            ߍ <span>Kitchen Display</span>
-          </a>
-        </Link>
-      )}
-      
-      {/* Waiter link */}
-      {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'waiter') && (
-        <Link href="/waiter">
-          <a className="nav-item flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-            ߑ‍ߒ <span>Waiter Panel</span>
-          </a>
-        </Link>
-      )}
+    <nav className="bg-white shadow-lg border-b">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex space-x-8 overflow-x-auto">
+          {visibleItems.map(item => (
+            <Link key={item.href} href={item.href}>
+              <a className={`
+                flex flex-col items-center py-4 px-3 text-sm font-medium transition-colors whitespace-nowrap
+                ${router.pathname === item.href
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }
+              `}>
+                <span className="text-lg mb-1">{item.label}</span>
+                <span className="text-xs text-gray-400">{item.description}</span>
+              </a>
+            </Link>
+          ))}
+        </div>
+      </div>
     </nav>
   );
 }
 ```
 
-## Step 3: Complete Route Mapping
-
-### Create `utils/routeMapping.js` to document all your routes:
-
-```javascript
-// utils/routeMapping.js - Complete route mapping for your system
-
-export const ROUTE_MAPPING = {
-  // Frontend Routes → Backend API Endpoints
-  
-  // AUTHENTICATION
-  '/login': {
-    backend: '/api/auth/token/',
-    method: 'POST',
-    description: 'User login with JWT token'
-  },
-
-  // WAITER ROUTES
-  '/waiter': {
-    backend: [
-      '/api/tables/tables/',           // Get all tables
-      '/api/tables/orders/'            // Get orders
-    ],
-    methods: ['GET'],
-    description: 'Waiter dashboard - table overview'
-  },
-
-  '/waiter/create-order': {
-    backend: [
-      '/api/tables/tables/',           // Get available tables
-      '/api/menu/items/',              // Get menu items
-      '/api/tables/orders/'            // Create new order
-    ],
-    methods: ['GET', 'POST'],
-    description: 'Create new table order'
-  },
-
-  // KITCHEN ROUTES
-  '/kitchen': {
-    backend: [
-      '/api/tables/kitchen/',                              // Get kitchen orders
-      '/api/tables/kitchen/{id}/update_status/',          // Update order status
-      '/api/tables/kitchen/summary/'                      // Kitchen summary stats
-    ],
-    methods: ['GET', 'POST'],
-    description: 'Kitchen display for order management'
-  },
-
-  // ADMIN ROUTES
-  '/admin/dashboard': {
-    backend: [
-      '/api/bills/summary/',           // Bill analytics
-      '/api/tables/tables/dashboard_summary/',  // Table stats
-    ],
-    methods: ['GET'],
-    description: 'Admin dashboard with analytics'
-  },
-
-  '/admin/restaurant-orders': {
-    backend: '/api/bills/summary/?type=restaurant',
-    methods: ['GET'],
-    description: 'Restaurant order history'
-  },
-
-  '/admin/manage-menu': {
-    backend: [
-      '/api/menu/items/',              // Menu items CRUD
-      '/api/menu/categories/'          // Categories CRUD
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    description: 'Menu management'
-  },
-
-  '/admin/manage-rooms': {
-    backend: '/api/rooms/',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    description: 'Room management'
-  },
-
-  '/admin/inventory': {
-    backend: [
-      '/api/inventory/categories/',    // Inventory categories
-      '/api/inventory/entries/'       // Inventory entries
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    description: 'Inventory management'
-  },
-
-  // STAFF ROUTES
-  '/staff/restaurant-billing': {
-    backend: '/api/bills/create/restaurant/',
-    methods: ['POST'],
-    description: 'Create restaurant bills'
-  },
-
-  '/staff/room-billing': {
-    backend: '/api/bills/create/room/',
-    methods: ['POST'],
-    description: 'Create room bills'
-  },
-
-  '/staff/bill-history': {
-    backend: '/api/bills/history/',
-    methods: ['GET'],
-    description: 'View billing history'
-  },
-
-  // SHARED ROUTES
-  '/menu-management': {
-    backend: [
-      '/api/menu/items/',
-      '/api/menu/categories/'
-    ],
-    methods: ['GET'],
-    description: 'Menu browsing (shared)'
-  }
-};
-
-// Route permissions mapping
-export const ROUTE_PERMISSIONS = {
-  '/admin/*': ['admin'],
-  '/staff/*': ['admin', 'staff'],
-  '/waiter/*': ['admin', 'staff', 'waiter'],
-  '/kitchen': ['admin', 'staff'],
-  '/bills/*': ['admin', 'staff', 'biller']
-};
-
-// API endpoint to frontend route mapping
-export const API_TO_ROUTE_MAPPING = {
-  // Tables API
-  '/api/tables/tables/': ['/waiter', '/admin/dashboard'],
-  '/api/tables/orders/': ['/waiter/create-order', '/admin/restaurant-orders'],
-  '/api/tables/kitchen/': ['/kitchen'],
-  
-  // Menu API
-  '/api/menu/items/': ['/waiter/create-order', '/admin/manage-menu', '/staff/restaurant-billing'],
-  '/api/menu/categories/': ['/admin/manage-menu', '/staff/restaurant-billing'],
-  
-  // Bills API
-  '/api/bills/create/restaurant/': ['/staff/restaurant-billing'],
-  '/api/bills/create/room/': ['/staff/room-billing'],
-  '/api/bills/history/': ['/staff/bill-history', '/admin/analytics'],
-  '/api/bills/summary/': ['/admin/dashboard', '/admin/restaurant-orders'],
-  
-  // Rooms API
-  '/api/rooms/': ['/admin/manage-rooms', '/staff/room-billing'],
-  
-  // Inventory API
-  '/api/inventory/categories/': ['/admin/inventory'],
-  '/api/inventory/entries/': ['/admin/inventory'],
-  
-  // Staff API
-  '/api/staff/profiles/': ['/admin/manage-staff'],
-  '/api/staff/attendance/': ['/admin/manage-staff'],
-  
-  // Users API
-  '/api/users/': ['/admin/manage-staff'],
-  '/api/auth/token/': ['/login']
-};
-
-export default ROUTE_MAPPING;
-```
-
-## Step 4: Update Role-based Routing in AuthContext
-
-### Update `context/AuthContext.js` to handle all role routing:
-
-```javascript
-// In context/AuthContext.js - update the login function
-const login = ({ access, role, email, username }) => {
-  localStorage.setItem("access", access);
-  localStorage.setItem("role", role);
-  localStorage.setItem("email", email);
-  localStorage.setItem("username", username);
-  
-  setUser({ access, role, email, username });
-
-  // Enhanced role-based routing
-  switch (role) {
-    case "admin":
-      router.push("/admin/dashboard");
-      break;
-    case "staff":
-      router.push("/staff/dashboard");
-      break;
-    case "waiter":
-      router.push("/waiter");
-      break;
-    case "biller":
-      router.push("/staff/restaurant-billing");
-      break;
-    default:
-      router.push("/dashboard");
-  }
-};
-```
-
-## Step 5: Test All Routes
-
-### Create a simple route tester page `pages/test-routes.js`:
+## 4. Kitchen Layout Component
+**File: `components/KitchenLayout.js`**
 
 ```jsx
-// pages/test-routes.js
-import { useState } from 'react';
+// components/KitchenLayout.js
 import { useAuth } from '@/context/AuthContext';
-import { ROUTE_MAPPING } from '@/utils/routeMapping';
+import KitchenNavigation from './KitchenNavigation';
+import { useRouter } from 'next/router';
 
-export default function RouteTest() {
-  const { user } = useAuth();
-  const [testResults, setTestResults] = useState({});
-
-  const testRoute = async (route, apiEndpoints) => {
-    if (!user?.access) return;
-    
-    const results = {};
-    
-    for (const endpoint of apiEndpoints) {
-      try {
-        const response = await fetch(endpoint, {
-          headers: { Authorization: `Bearer ${user.access}` }
-        });
-        
-        results[endpoint] = {
-          status: response.status,
-          success: response.ok,
-          statusText: response.statusText
-        };
-      } catch (error) {
-        results[endpoint] = {
-          status: 'ERROR',
-          success: false,
-          statusText: error.message
-        };
-      }
-    }
-    
-    setTestResults(prev => ({
-      ...prev,
-      [route]: results
-    }));
-  };
-
-  if (!user) return <div>Please login to test routes</div>;
+export default function KitchenLayout({ children }) {
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Route & API Testing</h1>
-      <p className="mb-4">User: {user.email} | Role: {user.role}</p>
-      
-      {Object.entries(ROUTE_MAPPING).map(([route, config]) => (
-        <div key={route} className="mb-4 p-4 border rounded">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-bold">{route}</h3>
-            <button
-              onClick={() => testRoute(route, Array.isArray(config.backend) ? config.backend : [config.backend])}
-              className="bg-blue-500 text-white px-3 py-1 rounded"
-            >
-              Test APIs
-            </button>
-          </div>
-          <p className="text-sm text-gray-600 mb-2">{config.description}</p>
-          
-          {testResults[route] && (
-            <div className="mt-2">
-              {Object.entries(testResults[route]).map(([endpoint, result]) => (
-                <div key={endpoint} className={`text-sm p-2 rounded mb-1 ${result.success ? 'bg-green-100' : 'bg-red-100'}`}>
-                  <strong>{endpoint}</strong>: {result.status} - {result.statusText}
-                </div>
-              ))}
+    <div className="min-h-screen bg-gray-50">
+      {/* Top Bar */}
+      <div className="bg-white border-b shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <h1 className="text-xl font-bold text-gray-800">
+                ߏ Hotel Management System
+              </h1>
+              <span className="text-sm text-gray-500">
+                Kitchen Operations
+              </span>
             </div>
-          )}
+            
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                Welcome, <strong>{user?.email}</strong>
+              </span>
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                {user?.role}
+              </span>
+              <button
+                onClick={logout}
+                className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
         </div>
-      ))}
+      </div>
+
+      {/* Navigation */}
+      <KitchenNavigation />
+
+      {/* Main Content */}
+      <main>
+        {children}
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t mt-8">
+        <div className="max-w-7xl mx-auto px-4 py-3 text-center text-sm text-gray-500">
+          © 2025 Hotel Management System - Kitchen Operations
+        </div>
+      </footer>
     </div>
   );
 }
 ```
 
-## Step 6: Quick Setup Commands
+## 5. Kitchen Display with Layout
+**File: `pages/kitchen/index.js` (Updated with Layout)**
 
-Run these in your terminal:
+```jsx
+// pages/kitchen/index.js (Updated version with layout)
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import withRoleGuard from '@/hoc/withRoleGuard';
+import KitchenLayout from '@/components/KitchenLayout';
+import { kitchenService } from '@/services/kitchenService';
 
-```bash
-# 1. Create kitchen directory
-mkdir -p pages/kitchen
+function KitchenDisplay() {
+  const { user } = useAuth();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
-# 2. Create kitchen index file
-# (Copy the kitchen display code above into pages/kitchen/index.js)
+  useEffect(() => {
+    fetchOrders();
+    
+    if (autoRefresh) {
+      const interval = setInterval(fetchOrders, 15000); // 15 seconds for real-time feel
+      return () => clearInterval(interval);
+    }
+  }, [user, autoRefresh]);
 
-# 3. Create utils directory if it doesn't exist
-mkdir -p utils
+  const fetchOrders = async () => {
+    if (!user?.access) return;
+    
+    try {
+      setError('');
+      const data = await kitchenService.getOrders(user.access);
+      setOrders(Array.isArray(data) ? data : data.results || []);
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Error fetching kitchen orders:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-# 4. Add route mapping file
-# (Copy the routeMapping.js code above)
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      await kitchenService.updateOrderStatus(user.access, orderId, newStatus);
+      
+      // Show visual feedback
+      const button = document.activeElement;
+      if (button) {
+        const originalText = button.textContent;
+        button.textContent = '✓ Done!';
+        button.disabled = true;
+        setTimeout(() => {
+          if (button) {
+            button.textContent = originalText;
+            button.disabled = false;
+          }
+        }, 1000);
+      }
+      
+      // Refresh orders
+      setTimeout(fetchOrders, 500);
+    } catch (error) {
+      setError('Failed to update order status');
+      console.error('Error updating order status:', error);
+    }
+  };
 
-# 5. Test the implementation
-npm run dev
+  const getOrderAge = (orderTime) => {
+    const now = new Date();
+    const ordered = new Date(orderTime);
+    const diffMinutes = Math.floor((now - ordered) / 60000);
+    return diffMinutes;
+  };
+
+  const getOrderCardClass = (order) => {
+    const age = getOrderAge(order.order_item?.order_time || order.display_time);
+    const status = order.order_item?.status || 'pending';
+    
+    let baseClass = 'bg-white border-2 rounded-xl p-6 shadow-md transition-all duration-300 hover:shadow-lg';
+    
+    if (age > 25) {
+      return `${baseClass} border-red-600 bg-red-50 animate-pulse ring-2 ring-red-400`;
+    } else if (age > 15) {
+      return `${baseClass} border-red-400 bg-red-50`;
+    } else if (age > 10) {
+      return `${baseClass} border-orange-400 bg-orange-50`;
+    } else if (status === 'preparing') {
+      return `${baseClass} border-blue-500 bg-blue-50`;
+    } else if (status === 'ready') {
+      return `${baseClass} border-green-500 bg-green-50`;
+    } else {
+      return `${baseClass} border-gray-300`;
+    }
+  };
+
+  if (loading) {
+    return (
+      <KitchenLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-xl font-semibold text-gray-700">Loading Kitchen Orders...</p>
+          </div>
+        </div>
+      </KitchenLayout>
+    );
+  }
+
+  const pendingOrders = orders.filter(o => o.order_item?.status === 'pending');
+  const preparingOrders = orders.filter(o => o.order_item?.status === 'preparing');
+  const readyOrders = orders.filter(o => o.order_item?.status === 'ready');
+  const totalActiveOrders = orders.length;
+
+  return (
+    <KitchenLayout>
+      <div className="p-6">
+        {/* Header Stats */}
+        <div className="mb-6 bg-white rounded-lg shadow-sm p-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Kitchen Operations</h2>
+              <p className="text-gray-600">
+                {totalActiveOrders} active orders • Updated: {lastUpdated.toLocaleTimeString()}
+              </p>
+            </div>
+            
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="autoRefresh"
+                  checked={autoRefresh}
+                  onChange={(e) => setAutoRefresh(e.target.checked)}
+                  className="rounded"
+                />
+                <label htmlFor="autoRefresh" className="text-sm text-gray-600">
+                  Auto-refresh
+                </label>
+              </div>
+              
+              <div className="flex space-x-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">{pendingOrders.length}</div>
+                  <div className="text-xs text-gray-500">Pending</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{preparingOrders.length}</div>
+                  <div className="text-xs text-gray-500">Cooking</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{readyOrders.length}</div>
+                  <div className="text-xs text-gray-500">Ready</div>
+                </div>
+              </div>
+              
+              <button
+                onClick={fetchOrders}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                ߔ Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        )}
+
+        {/* Orders Grid */}
+        {totalActiveOrders === 0 ? (
+          <div className="bg-white rounded-xl p-12 text-center shadow-sm">
+            <div className="text-6xl mb-4">ߎ</div>
+            <h3 className="text-2xl font-bold text-gray-700 mb-2">All Orders Complete!</h3>
+            <p className="text-gray-500">No pending orders in the kitchen</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {orders.map((order) => {
+              const orderItem = order.order_item || {};
+              const orderTime = orderItem.order_time || order.display_time;
+              const age = getOrderAge(orderTime);
+              
+              return (
+                <div key={order.id} className={getOrderCardClass(order)}>
+                  {/* Order Header */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-800">
+                        Table {order.table_number}
+                      </h3>
+                      <p className="text-sm text-gray-600">#{order.order_number}</p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                      age > 20 ? 'bg-red-500 text-white' : 
+                      age > 10 ? 'bg-orange-500 text-white' : 
+                      'bg-blue-500 text-white'
+                    }`}>
+                      {age}min
+                    </span>
+                  </div>
+
+                  {/* Food Item */}
+                  <div className="mb-4">
+                    <h4 className="font-bold text-lg text-gray-800 mb-1">
+                      {orderItem.menu_item_name}
+                    </h4>
+                    <p className="text-gray-600">
+                      Quantity: <span className="font-bold text-xl">{orderItem.quantity}</span>
+                    </p>
+                  </div>
+
+                  {/* Special Instructions */}
+                  {orderItem.special_instructions && (
+                    <div className="mb-4 bg-yellow-100 p-3 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        <strong>Note:</strong> {orderItem.special_instructions}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Customer Info */}
+                  <div className="mb-4 text-sm text-gray-600 space-y-1">
+                    <div>ߑ {order.customer_name || 'Guest'}</div>
+                    <div>ߑ‍ߒ {order.waiter_name || 'Staff'}</div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="space-y-2">
+                    {orderItem.status === 'pending' && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'preparing')}
+                        className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                      >
+                        ߔ Start Cooking
+                      </button>
+                    )}
+                    
+                    {orderItem.status === 'preparing' && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'ready')}
+                        className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                      >
+                        ✅ Mark Ready
+                      </button>
+                    )}
+                    
+                    {orderItem.status === 'ready' && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'served')}
+                        className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+                      >
+                        ߚ Mark Served
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Urgent Alert */}
+                  {age > 20 && (
+                    <div className="mt-3 bg-red-600 text-white text-center py-2 rounded font-bold">
+                      ⚠️ URGENT - Over 20 minutes!
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </KitchenLayout>
+  );
+}
+
+export default withRoleGuard(KitchenDisplay, ['admin', 'staff']);
 ```
 
-## Summary of Complete Route Implementation:
+## 6. Update Main Navigation (Add Kitchen Link)
+**File: Update your existing navigation component**
 
-✅ **Kitchen Display**: `/kitchen` → Kitchen order management  
-✅ **Waiter Interface**: `/waiter` → Table selection and orders  
-✅ **Order Creation**: `/waiter/create-order` → Menu-based ordering  
-✅ **Admin Management**: `/admin/*` → All administrative functions  
-✅ **Staff Operations**: `/staff/*` → Billing and operations  
-✅ **Route Mapping**: Complete API ↔ Frontend mapping documented  
+```jsx
+// Add to your existing navigation component
+import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
 
-Your system now has **complete route coverage** with proper role-based access control! ߚ
+// In your navigation component, add this:
+const { user } = useAuth();
+
+// Add this link where appropriate:
+{(user?.role === 'admin' || user?.role === 'staff') && (
+  <Link href="/kitchen">
+    <a className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+      <span className="mr-2">ߍ</span>
+      Kitchen Display
+    </a>
+  </Link>
+)}
+```
+
+## Setup Instructions:
+
+1. **Create directories:**
+```bash
+mkdir -p pages/kitchen
+mkdir -p services
+mkdir -p components
+```
+
+2. **Copy all the code files above into their respective locations**
+
+3. **Test the kitchen display:**
+```bash
+npm run dev
+# Navigate to /kitchen as admin or staff user
+```
+
+## Features Included:
+✅ Real-time order updates every 15 seconds  
+✅ Visual priority system (red for urgent orders)  
+✅ Status workflow: pending → preparing → ready → served  
+✅ Professional UI with animations and feedback  
+✅ Order age tracking with visual indicators  
+✅ Special instructions display  
+✅ Customer and waiter information  
+✅ Auto-refresh toggle  
+✅ Sound notifications (optional)  
+✅ Mobile responsive design  
+✅ Error handling and loading states  
+
+This complete implementation will give you a professional kitchen display system that integrates seamlessly with your existing Django backend!
