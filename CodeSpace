@@ -1,35 +1,25 @@
-t login: Wed Sep  3 08:45:20 2025 from 152.58.41.36
-ubuntu@hotel-management-server:~$ cd hotel-management-backend
-ubuntu@hotel-management-server:~/hotel-management-backend$ source venv/bin/activate
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ python manage.py showmigrations
-Traceback (most recent call last):
-  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
-    main()
-  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
-    execute_from_command_line(sys.argv)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
-    utility.execute()
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 416, in execute
-    django.setup()
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/__init__.py", line 24, in setup
-    apps.populate(settings.INSTALLED_APPS)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 124, in populate
-    app_config.ready()
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/admin/apps.py", line 27, in ready
-    self.module.autodiscover()
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/admin/__init__.py", line 50, in autodiscover
-    autodiscover_modules("admin", register_to=site)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/utils/module_loading.py", line 58, in autodiscover_modules
-    import_module("%s.%s" % (app_config.name, module_to_search))
-  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
-  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
-  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
-  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
-  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
-  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "/home/ubuntu/hotel-management-backend/apps/staff/admin.py", line 4, in <module>
-    from .models import StaffProfile, Attendance, PaymentRecord, AdvancePayment
-ImportError: cannot import name 'Attendance' from 'apps.staff.models' (/home/ubuntu/hotel-management-backend/apps/staff/models.py)
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$
+# apps/staff/admin.py - CORRECTED VERSION
+from django.contrib import admin
+from .models import StaffProfile, AttendanceRecord, AdvancePayment
+
+@admin.register(StaffProfile)
+class StaffProfileAdmin(admin.ModelAdmin):
+    list_display = ['employee_id', 'full_name', 'user', 'department', 'employment_status']
+    list_filter = ['department', 'employment_status'] 
+    search_fields = ['employee_id', 'full_name', 'user__email']
+
+@admin.register(AttendanceRecord)
+class AttendanceRecordAdmin(admin.ModelAdmin):
+    list_display = ['staff', 'date', 'status', 'total_hours']
+    list_filter = ['status', 'date']
+    search_fields = ['staff__full_name']
+
+@admin.register(AdvancePayment)
+class AdvancePaymentAdmin(admin.ModelAdmin):
+    list_display = ['staff', 'amount', 'status', 'request_date']
+    list_filter = ['status', 'request_date']
+    search_fields = ['staff__full_name']
+////////////////////////////////////////////////////////////////////
+python manage.py showmigrations
+python manage.py migrate  
+python manage.py check
