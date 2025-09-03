@@ -194,28 +194,74 @@ EOF
 # 4. Restart services:
 sudo systemctl restart gunicorn nginx
 //////////////////
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ pip install certifi==2023.7.22
-pip install pytz==2023.3
-pip install tzdata==2023.3
-Collecting certifi==2023.7.22
-  Downloading certifi-2023.7.22-py3-none-any.whl.metadata (2.2 kB)
-Downloading certifi-2023.7.22-py3-none-any.whl (158 kB)
-Installing collected packages: certifi
-ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
-oci 2.150.3 requires pytz>=2016.10, which is not installed.
-Successfully installed certifi-2023.7.22
-Collecting pytz==2023.3
-  Downloading pytz-2023.3-py2.py3-none-any.whl.metadata (22 kB)
-Downloading pytz-2023.3-py2.py3-none-any.whl (502 kB)
-Installing collected packages: pytz
-Successfully installed pytz-2023.3
-Collecting tzdata==2023.3
-  Downloading tzdata-2023.3-py2.py3-none-any.whl.metadata (1.4 kB)
-Downloading tzdata-2023.3-py2.py3-none-any.whl (341 kB)
-Installing collected packages: tzdata
-ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
-kombu 5.5.0 requires tzdata==2025.1; python_version >= "3.9", but you have tzdata 2023.3 which is incompatible.
-Successfully installed tzdata-2023.3
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$
+  Installing build dependencies ... done
+  Getting requirements to build wheel ... done
+  Installing backend dependencies ... done
+  Preparing metadata (pyproject.toml) ... error
+  error: subprocess-exited-with-error
 
+  × Preparing metadata (pyproject.toml) did not run successfully.
+  │ exit code: 1
+  ╰─> [50 lines of output]
+      + meson setup /tmp/pip-install-dao_fot8/pycairo_7e9a73b3df6b4415bd8df2aebcf26e0c /tmp/pip-install-dao_fot8/pycairo_7e9a73b3df6b4415bd8df2aebcf26e0c/.mesonpy-aphi4eok -Dbuildtype=release -Db_ndebug=if-release -Db_vscrt=md -Dwheel=true -Dtests=false --native-file=/tmp/pip-install-dao_fot8/pycairo_7e9a73b3df6b4415bd8df2aebcf26e0c/.mesonpy-aphi4eok/meson-python-native-file.ini
+      The Meson build system
+      Version: 1.9.0
+      Source dir: /tmp/pip-install-dao_fot8/pycairo_7e9a73b3df6b4415bd8df2aebcf26e0c
+      Build dir: /tmp/pip-install-dao_fot8/pycairo_7e9a73b3df6b4415bd8df2aebcf26e0c/.mesonpy-aphi4eok
+      Build type: native build
+      Project name: pycairo
+      Project version: 1.28.0
+      C compiler for the host machine: cc (gcc 11.4.0 "cc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.0")
+      C linker for the host machine: cc ld.bfd 2.38
+      Host machine cpu family: aarch64
+      Host machine cpu: aarch64
+      Program python3 found: YES (/home/ubuntu/hotel-management-backend/venv/bin/python3)
+      Compiler for C supports arguments -Wall: YES
+      Compiler for C supports arguments -Warray-bounds: YES
+      Compiler for C supports arguments -Wcast-align: YES
+      Compiler for C supports arguments -Wconversion: YES
+      Compiler for C supports arguments -Wextra: YES
+      Compiler for C supports arguments -Wformat=2: YES
+      Compiler for C supports arguments -Wformat-nonliteral: YES
+      Compiler for C supports arguments -Wformat-security: YES
+      Compiler for C supports arguments -Wimplicit-function-declaration: YES
+      Compiler for C supports arguments -Winit-self: YES
+      Compiler for C supports arguments -Winline: YES
+      Compiler for C supports arguments -Wmissing-format-attribute: YES
+      Compiler for C supports arguments -Wmissing-noreturn: YES
+      Compiler for C supports arguments -Wnested-externs: YES
+      Compiler for C supports arguments -Wold-style-definition: YES
+      Compiler for C supports arguments -Wpacked: YES
+      Compiler for C supports arguments -Wpointer-arith: YES
+      Compiler for C supports arguments -Wreturn-type: YES
+      Compiler for C supports arguments -Wshadow: YES
+      Compiler for C supports arguments -Wsign-compare: YES
+      Compiler for C supports arguments -Wstrict-aliasing: YES
+      Compiler for C supports arguments -Wundef: YES
+      Compiler for C supports arguments -Wunused-but-set-variable: YES
+      Compiler for C supports arguments -Wswitch-default: YES
+      Compiler for C supports arguments -Wno-missing-field-initializers: YES
+      Compiler for C supports arguments -Wno-unused-parameter: YES
+      Compiler for C supports arguments -fno-strict-aliasing: YES
+      Compiler for C supports arguments -fvisibility=hidden: YES
+      Did not find pkg-config by name 'pkg-config'
+      Found pkg-config: NO
+      Did not find CMake 'cmake'
+      Found CMake: NO
+      Run-time dependency cairo found: NO
+
+      ../cairo/meson.build:31:12: ERROR: Dependency lookup for cairo with method 'pkgconfig' failed: Pkg-config for machine host machine not found. Giving up.
+
+      A full log can be found at /tmp/pip-install-dao_fot8/pycairo_7e9a73b3df6b4415bd8df2aebcf26e0c/.mesonpy-aphi4eok/meson-logs/meson-log.txt
+      [end of output]
+
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+error: metadata-generation-failed
+
+× Encountered error while generating package metadata.
+╰─> See above for output.
+
+note: This is an issue with the package mentioned above, not pip.
+hint: See above for details.
+(venv) ubuntu@hotel-management-server:~/hotel-management-backend$
 
