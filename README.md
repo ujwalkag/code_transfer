@@ -194,4 +194,28 @@ EOF
 # 4. Restart services:
 sudo systemctl restart gunicorn nginx
 //////////////////
+(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ pip install certifi==2023.7.22
+pip install pytz==2023.3
+pip install tzdata==2023.3
+Collecting certifi==2023.7.22
+  Downloading certifi-2023.7.22-py3-none-any.whl.metadata (2.2 kB)
+Downloading certifi-2023.7.22-py3-none-any.whl (158 kB)
+Installing collected packages: certifi
+ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+oci 2.150.3 requires pytz>=2016.10, which is not installed.
+Successfully installed certifi-2023.7.22
+Collecting pytz==2023.3
+  Downloading pytz-2023.3-py2.py3-none-any.whl.metadata (22 kB)
+Downloading pytz-2023.3-py2.py3-none-any.whl (502 kB)
+Installing collected packages: pytz
+Successfully installed pytz-2023.3
+Collecting tzdata==2023.3
+  Downloading tzdata-2023.3-py2.py3-none-any.whl.metadata (1.4 kB)
+Downloading tzdata-2023.3-py2.py3-none-any.whl (341 kB)
+Installing collected packages: tzdata
+ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+kombu 5.5.0 requires tzdata==2025.1; python_version >= "3.9", but you have tzdata 2023.3 which is incompatible.
+Successfully installed tzdata-2023.3
+(venv) ubuntu@hotel-management-server:~/hotel-management-backend$
+
 
