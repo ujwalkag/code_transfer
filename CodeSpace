@@ -1,84 +1,125 @@
-# 1. Replace Backend Files (Copy-paste complete content)
-# Replace your apps/tables/views.py with COMPLETE_apps_tables_views.py content
-# Replace your apps/bills/views.py with COMPLETE_apps_bills_views.py content  
-# Replace your config/urls.py with COMPLETE_config_urls.py content
-# Replace your apps/bills/urls.py with COMPLETE_apps_bills_urls.py content
-# Replace your apps/tables/mobile_urls.py with COMPLETE_apps_tables_mobile_urls.py content
-# Replace your apps/tables/serializers.py with COMPLETE_apps_tables_serializers.py content
-# Replace your apps/staff/urls.py with COMPLETE_apps_staff_urls.py content
+# SSH to your server
+ssh ubuntu@your-server
+cd /home/ubuntu/hotel-management-backend
+source venv/bin/activate
 
-# 2. Update Frontend Dashboard
-# Add the navigation links from COMPLETE_frontend_dashboard_update.js to your dashboard
+# Create comprehensive backup
+python manage.py dumpdata > full_backup_$(date +%Y%m%d_%H%M%S).json
 
-# 3. Apply Migrations
+# Create app-specific backups (safer for restoration)
+python manage.py dumpdata users > users_backup.json
+python manage.py dumpdata menu > menu_backup.json  
+python manage.py dumpdata rooms > rooms_backup.json
+python manage.py dumpdata bills > bills_backup.json
+python manage.py dumpdata staff > staff_backup.json
+python manage.py dumpdata inventory > inventory_backup.json
+
+echo "✅ Data backup complete"
+///////////////////
+# Remove all migration files (keeps __init__.py)
+find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
+find . -path "*/migrations/*.pyc" -delete
+
+# Verify removal
+echo "Migration files removed from these apps:"
+ls -la apps/*/migrations/
+///////////////////////////////
+# Create migrations in dependency order
+
+echo "ߓ Creating base app migrations..."
+python manage.py makemigrations users
+python manage.py makemigrations core
+
+echo "ߓ Creating independent app migrations..."
+python manage.py makemigrations menu
+python manage.py makemigrations rooms  
+python manage.py makemigrations inventory
+python manage.py makemigrations notifications
+
+echo "ߓ Creating dependent app migrations..."
+python manage.py makemigrations staff    # depends on users
+python manage.py makemigrations tables   # depends on users, menu  
+python manage.py makemigrations bills    # depends on users, rooms, menu
+
+echo "✅ Fresh migrations created for all apps"
+/////////////////////////////////////////////////////
+# Option A: If database exists but has schema issues
+echo "ߔ Applying migrations with fake-initial..."
+python manage.py migrate users --fake-initial
+python manage.py migrate core --fake-initial
+python manage.py migrate menu --fake-initial
+python manage.py migrate rooms --fake-initial
+python manage.py migrate inventory --fake-initial
+python manage.py migrate notifications --fake-initial
+python manage.py migrate staff --fake-initial
+python manage.py migrate tables --fake-initial
+python manage.py migrate bills --fake-initial
+
+# Apply any remaining migrations
 python manage.py migrate
 
-# 4. Restart Server  
-python manage.py runserver
-////////////////////////
-{/* Expanded Main Navigation Cards */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-  <LinkCard href="/admin/manage-menu" label="ߍ️ Menu Management / मेन्यू प्रबंधन" />
-  <LinkCard href="/admin/manage-rooms" label="ߏ Room Management / कमरा प्रबंधन" />
-  <LinkCard href="/admin/manage-staff" label="ߑ Basic Staff / बेसिक स्टाफ" />
-  <LinkCard href="/admin/staff-management" label="ߑ Staff Management / कर्मचारी प्रबंधन" />
-  <LinkCard href="/admin/enhanced-billing" label="ߒ Enhanced Billing / एक-क्लिक बिलिंग" />
-  <LinkCard href="/waiter/mobile-orders" label="ߓ Mobile Orders / मोबाइल ऑर्डर" />
-  <LinkCard href="/admin/billing" label="ߒ Standard Billing / मानक बिलिंग" />
-  <LinkCard href="/admin/bill-history" label="ߓ Bill History / बिल इतिहास" />
-  <LinkCard href="/admin/inventory" label="ߓ Inventory / इन्वेंटरी" />
-  <LinkCard href="/kitchen" label="ߍ Kitchen Display / किचन डिस्प्ले" />
-</div>
+# Option B: If you want completely fresh database (⚠️ DELETES ALL DATA)
+# rm -f db.sqlite3  # Only if using SQLite
+# python manage.py migrate
+////////////////////////////////////////////////////////////
+# Check migration status
+python manage.py showmigrations
 
-{/* NEW: Enhanced Quick Actions */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-  <QuickActionCard 
-    href="/admin/staff-management"
-    icon="ߑ"
-    title="Staff Management"
-    subtitle="Attendance & Payroll"
-    description="Track staff attendance, manage schedules, and process payroll"
-  />
-  <QuickActionCard 
-    href="/admin/enhanced-billing" 
-    icon="ߒ"
-    title="Enhanced Billing"
-    subtitle="One-Click Bills"
-    description="Generate bills with automatic GST calculation from completed orders"
-  />
-  <QuickActionCard 
-    href="/waiter/mobile-orders"
-    icon="ߓ"
-    title="Mobile Orders"
-    subtitle="Waiter Interface"
-    description="Mobile-friendly interface for waiters to take orders"
-  />
-  <QuickActionCard 
-    href="/kitchen"
-    icon="ߍ"
-    title="Kitchen Display"
-    subtitle="Order Status"
-    description="Real-time kitchen display for order management"
-  />
-</div>
-////////////////////////////////////////////////
-// QuickActionCard Component
-function QuickActionCard({ href, icon, title, subtitle, description }) {
-  return (
-    <Link href={href}>
-      <div className="bg-white rounded-lg shadow hover:shadow-lg transition-all p-6 cursor-pointer border border-gray-200 hover:border-blue-300">
-        <div className="flex items-center mb-3">
-          <span className="text-2xl mr-3">{icon}</span>
-          <div>
-            <h3 className="font-semibold text-gray-900 text-sm">{title}</h3>
-            <p className="text-xs text-blue-600 font-medium">{subtitle}</p>
-          </div>
-        </div>
-        <p className="text-gray-600 text-xs leading-relaxed">{description}</p>
-      </div>
-    </Link>
-  );
-}
+# Test database connectivity
+python manage.py shell << 'EOF'
+from apps.users.models import CustomUser
+from apps.staff.models import StaffProfile, AttendanceRecord  
+from apps.tables.models import RestaurantTable, TableOrder, OrderItem
+from apps.bills.models import Bill, BillItem
+from apps.menu.models import MenuItem
+from apps.rooms.models import Room
 
-export default withRoleGuard(AdminDashboard, ["admin"]);
-/////////////////////////////////////////////////
+print("✅ All models imported successfully")
+print("User count:", CustomUser.objects.count())
+print("Menu items:", MenuItem.objects.count())
+print("Tables:", RestaurantTable.objects.count())
+EOF
+
+# Restart services
+sudo systemctl restart gunicorn
+sudo systemctl restart nginx
+
+echo "ߎ Migration reset complete!"
+////////////////////////////////////////////////////////
+# If you get "table already exists" errors:
+python manage.py migrate --fake-initial
+
+# If you get foreign key constraint errors:
+python manage.py migrate --fake
+python manage.py makemigrations --merge
+python manage.py migrate
+
+# If specific app has issues:
+python manage.py migrate staff --fake
+python manage.py migrate tables --fake  
+python manage.py migrate bills --fake
+
+# Check what tables actually exist in database:
+python manage.py dbshell << 'EOF'
+.tables  -- For SQLite
+-- SELECT tablename FROM pg_tables WHERE schemaname='public';  -- For PostgreSQL
+.exit
+EOF
+/////////////////////////////////////////////////////////
+
+# After successful migration, restore your data:
+python manage.py loaddata users_backup.json
+python manage.py loaddata menu_backup.json
+python manage.py loaddata rooms_backup.json
+# ... etc for other apps
+
+# Or restore everything at once:
+python manage.py loaddata full_backup_TIMESTAMP.json
+//////////////////////////////////////////////////////////////
+# Nuclear option - complete reset
+rm -f db.sqlite3
+find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
+python manage.py makemigrations users core menu rooms inventory notifications staff tables bills
+python manage.py migrate
+python manage.py createsuperuser --email admin@hotel.com
+///////////////////////////////////////////////////////////////////
