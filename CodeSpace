@@ -1,11 +1,84 @@
-# 1. Fake the specific conflicting migration (safe approach)
-python manage.py migrate staff 0002_attendancerecord_remove_paymentrecord_paid_by_and_more --fake
+# 1. Replace Backend Files (Copy-paste complete content)
+# Replace your apps/tables/views.py with COMPLETE_apps_tables_views.py content
+# Replace your apps/bills/views.py with COMPLETE_apps_bills_views.py content  
+# Replace your config/urls.py with COMPLETE_config_urls.py content
+# Replace your apps/bills/urls.py with COMPLETE_apps_bills_urls.py content
+# Replace your apps/tables/mobile_urls.py with COMPLETE_apps_tables_mobile_urls.py content
+# Replace your apps/tables/serializers.py with COMPLETE_apps_tables_serializers.py content
+# Replace your apps/staff/urls.py with COMPLETE_apps_staff_urls.py content
 
-# 2. Check migration status
-python manage.py showmigrations staff
+# 2. Update Frontend Dashboard
+# Add the navigation links from COMPLETE_frontend_dashboard_update.js to your dashboard
 
-# 3. Continue with remaining migrations
+# 3. Apply Migrations
 python manage.py migrate
 
-# 4. Verify everything works
-python manage.py check
+# 4. Restart Server  
+python manage.py runserver
+////////////////////////
+{/* Expanded Main Navigation Cards */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+  <LinkCard href="/admin/manage-menu" label="ߍ️ Menu Management / मेन्यू प्रबंधन" />
+  <LinkCard href="/admin/manage-rooms" label="ߏ Room Management / कमरा प्रबंधन" />
+  <LinkCard href="/admin/manage-staff" label="ߑ Basic Staff / बेसिक स्टाफ" />
+  <LinkCard href="/admin/staff-management" label="ߑ Staff Management / कर्मचारी प्रबंधन" />
+  <LinkCard href="/admin/enhanced-billing" label="ߒ Enhanced Billing / एक-क्लिक बिलिंग" />
+  <LinkCard href="/waiter/mobile-orders" label="ߓ Mobile Orders / मोबाइल ऑर्डर" />
+  <LinkCard href="/admin/billing" label="ߒ Standard Billing / मानक बिलिंग" />
+  <LinkCard href="/admin/bill-history" label="ߓ Bill History / बिल इतिहास" />
+  <LinkCard href="/admin/inventory" label="ߓ Inventory / इन्वेंटरी" />
+  <LinkCard href="/kitchen" label="ߍ Kitchen Display / किचन डिस्प्ले" />
+</div>
+
+{/* NEW: Enhanced Quick Actions */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+  <QuickActionCard 
+    href="/admin/staff-management"
+    icon="ߑ"
+    title="Staff Management"
+    subtitle="Attendance & Payroll"
+    description="Track staff attendance, manage schedules, and process payroll"
+  />
+  <QuickActionCard 
+    href="/admin/enhanced-billing" 
+    icon="ߒ"
+    title="Enhanced Billing"
+    subtitle="One-Click Bills"
+    description="Generate bills with automatic GST calculation from completed orders"
+  />
+  <QuickActionCard 
+    href="/waiter/mobile-orders"
+    icon="ߓ"
+    title="Mobile Orders"
+    subtitle="Waiter Interface"
+    description="Mobile-friendly interface for waiters to take orders"
+  />
+  <QuickActionCard 
+    href="/kitchen"
+    icon="ߍ"
+    title="Kitchen Display"
+    subtitle="Order Status"
+    description="Real-time kitchen display for order management"
+  />
+</div>
+////////////////////////////////////////////////
+// QuickActionCard Component
+function QuickActionCard({ href, icon, title, subtitle, description }) {
+  return (
+    <Link href={href}>
+      <div className="bg-white rounded-lg shadow hover:shadow-lg transition-all p-6 cursor-pointer border border-gray-200 hover:border-blue-300">
+        <div className="flex items-center mb-3">
+          <span className="text-2xl mr-3">{icon}</span>
+          <div>
+            <h3 className="font-semibold text-gray-900 text-sm">{title}</h3>
+            <p className="text-xs text-blue-600 font-medium">{subtitle}</p>
+          </div>
+        </div>
+        <p className="text-gray-600 text-xs leading-relaxed">{description}</p>
+      </div>
+    </Link>
+  );
+}
+
+export default withRoleGuard(AdminDashboard, ["admin"]);
+/////////////////////////////////////////////////
