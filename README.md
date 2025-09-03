@@ -64,3 +64,134 @@ sudo systemctl start nginx
 /////////////////
 source venv/bin/activate && pip uninstall django -y && pip install Django==4.2.7 && python -c "import django; print('Django OK')" && python manage.py check
 ////////////////////////////////
+////////////////////////////////
+# 1. STOP SERVICES
+sudo systemctl stop gunicorn
+
+# 2. ACTIVATE ENVIRONMENT  
+source venv/bin/activate
+
+# 3. FIX CORRUPTED PACKAGES
+pip uninstall certifi pytz tzdata -y
+
+# 4. INSTALL CORRECT VERSIONS
+pip install certifi==2023.7.22
+pip install pytz==2023.3  
+pip install tzdata==2023.3
+
+# 5. ADD MISSING PACKAGE
+pip install xhtml2pdf==0.2.13
+
+# 6. TEST DJANGO
+python -c "
+import django
+from django.db import migrations  
+print('✅ Django fixed!')
+"
+
+# 7. TEST MANAGEMENT COMMANDS
+python manage.py check
+
+/////////////////////////////////
+# Core Django
+Django==4.2.7
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.0
+
+# Database & CORS
+psycopg2-binary==2.9.9
+django-cors-headers==4.3.1
+
+# Environment & Server
+python-decouple==3.8
+python-dotenv==1.0.0
+gunicorn==23.0.0
+whitenoise==6.6.0
+
+# File Processing & PDFs
+Pillow==10.0.1
+reportlab==4.0.7
+xhtml2pdf==0.2.13
+
+# API Documentation
+drf-yasg==1.21.10
+
+# Core Utilities
+python-dateutil==2.9.0.post0
+pytz==2023.3
+tzdata==2023.3
+certifi==2023.7.22
+/////////////////////////////////////
+#!/bin/bash
+
+echo "ߔ Fixing corrupted Django environment..."
+
+# Backup current requirements
+cp requirements.txt requirements_backup.txt
+
+# Stop services
+sudo systemctl stop gunicorn
+
+# Fix environment
+source venv/bin/activate
+
+# Remove corrupted packages
+echo "ߗ️ Removing corrupted packages..."
+pip uninstall certifi pytz tzdata -y
+
+# Install correct versions
+echo "ߓ Installing fixed packages..."
+pip install certifi==2023.7.22 pytz==2023.3 tzdata==2023.3
+
+# Add missing PDF package
+pip install xhtml2pdf==0.2.13
+
+# Reinstall Django to be safe
+echo "ߔ Reinstalling Django..."
+pip uninstall django -y
+pip install Django==4.2.7
+
+# Test Django
+echo "ߧ Testing Django..."
+python -c "
+import django
+from django.db import migrations
+print('✅ Django working!')
+"
+
+# If successful, test management
+if [ $? -eq 0 ]; then
+    echo "✅ Django fixed! Testing management commands..."
+    python manage.py check
+    
+    if [ $? -eq 0 ]; then
+        echo "ߎ Complete fix successful!"
+        echo "ߔ You can now run migrations"
+        
+        # Restart services
+        sudo systemctl start gunicorn
+        echo "✅ Services restarted"
+    else
+        echo "❌ Management commands still broken"
+    fi
+else
+    echo "❌ Django still broken - need full rebuild"
+fi
+///////////////////////////////
+# 1. Fix packages (run script above)
+# 2. Once Django is working, run migrations:
+python manage.py makemigrations
+python manage.py migrate --fake-initial
+python manage.py migrate
+
+# 3. Test your hotel management features:
+python manage.py shell << 'EOF'
+from apps.users.models import CustomUser
+from apps.menu.models import MenuItem
+print("✅ All models working")
+EOF
+
+# 4. Restart services:
+sudo systemctl restart gunicorn nginx
+//////////////////
+
