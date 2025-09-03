@@ -123,3 +123,415 @@ python manage.py makemigrations users core menu rooms inventory notifications st
 python manage.py migrate
 python manage.py createsuperuser --email admin@hotel.com
 ///////////////////////////////////////////////////////////////////
+# Create comprehensive backup
+python manage.py dumpdata > full_backup_$(date +%Y%m%d_%H%M%S).json
+
+# Create app-specific backups (safer for restoration)
+python manage.py dumpdata users > users_backup.json
+python manage.py dumpdata menu > menu_backup.json
+python manage.py dumpdata rooms > rooms_backup.json
+python manage.py dumpdata bills > bills_backup.json
+python manage.py dumpdata staff > staff_backup.json
+python manage.py dumpdata inventory > inventory_backup.json
+
+echo "✅ Data backup complete"
+CommandError: Unable to serialize database: cursor "_django_curs_264557548729376_sync_25" does not exist
+CommandError: Unable to serialize database: cursor "_django_curs_265769412830240_sync_1" does not exist
+✅ Data backup complete
+(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ # Remove all migration files (keeps __init__.py)
+find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
+find . -path "*/migrations/*.pyc" -delete
+(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ echo "Migration files removed from these apps:"
+ls -la apps/*/migrations/
+Migration files removed from these apps:
+apps/bills/migrations/:
+total 12
+drwxrwxr-x 3 ubuntu ubuntu 4096 Sep  3 14:29 .
+drwxrwxr-x 6 ubuntu ubuntu 4096 Sep  3 13:14 ..
+-rw-rw-r-- 1 ubuntu ubuntu    0 May  6 15:40 __init__.py
+drwxrwxr-x 2 ubuntu ubuntu 4096 Sep  3 14:29 __pycache__
+
+apps/core/migrations/:
+total 12
+drwxrwxr-x 3 ubuntu ubuntu 4096 May 17 06:10 .
+drwxrwxr-x 4 ubuntu ubuntu 4096 May 10 14:55 ..
+-rw-rw-r-- 1 ubuntu ubuntu    0 May  6 15:40 __init__.py
+drwxrwxr-x 2 ubuntu ubuntu 4096 May 17 06:10 __pycache__
+
+apps/inventory/migrations/:
+total 12
+drwxrwxr-x 3 ubuntu ubuntu 4096 Sep  3 14:29 .
+drwxrwxr-x 4 ubuntu ubuntu 4096 Aug 23 06:25 ..
+-rw-rw-r-- 1 ubuntu ubuntu    0 Aug 23 06:25 __init__.py
+drwxrwxr-x 2 ubuntu ubuntu 4096 Sep  3 14:29 __pycache__
+
+apps/menu/migrations/:
+total 12
+drwxrwxr-x 3 ubuntu ubuntu 4096 Sep  3 14:29 .
+drwxrwxr-x 4 ubuntu ubuntu 4096 Jun  3 13:26 ..
+-rwxr-xr-x 1 ubuntu ubuntu    0 Apr  4 15:25 __init__.py
+drwxrwxr-x 2 ubuntu ubuntu 4096 Sep  3 14:29 __pycache__
+
+apps/notifications/migrations/:
+total 12
+drwxrwxr-x 3 ubuntu ubuntu 4096 Sep  3 14:29 .
+drwxrwxr-x 4 ubuntu ubuntu 4096 Jul 15 05:40 ..
+-rw-rw-r-- 1 ubuntu ubuntu    0 May  6 15:40 __init__.py
+drwxrwxr-x 2 ubuntu ubuntu 4096 Sep  3 14:29 __pycache__
+
+apps/rooms/migrations/:
+total 12
+drwxrwxr-x 3 ubuntu ubuntu 4096 Sep  3 14:29 .
+drwxrwxr-x 4 ubuntu ubuntu 4096 Jun  3 12:18 ..
+-rw-rw-r-- 1 ubuntu ubuntu    0 May  6 15:40 __init__.py
+drwxrwxr-x 2 ubuntu ubuntu 4096 Sep  3 14:29 __pycache__
+
+apps/staff/migrations/:
+total 12
+drwxrwxr-x 3 ubuntu ubuntu 4096 Sep  3 14:29 .
+drwxrwxr-x 4 ubuntu ubuntu 4096 Sep  3 13:15 ..
+-rw-rw-r-- 1 ubuntu ubuntu    0 Aug 22 09:23 __init__.py
+drwxrwxr-x 2 ubuntu ubuntu 4096 Sep  3 14:29 __pycache__
+
+apps/tables/migrations/:
+total 12
+drwxrwxr-x 3 ubuntu ubuntu 4096 Sep  3 14:29 .
+drwxrwxr-x 4 ubuntu ubuntu 4096 Sep  3 13:17 ..
+-rw-rw-r-- 1 ubuntu ubuntu    0 Aug 22 09:21 __init__.py
+drwxrwxr-x 2 ubuntu ubuntu 4096 Sep  3 14:29 __pycache__
+
+apps/users/migrations/:
+total 12
+drwxrwxr-x 3 ubuntu ubuntu 4096 Sep  3 14:29 .
+drwxrwxr-x 4 ubuntu ubuntu 4096 Aug 29 14:50 ..
+-rw-rw-r-- 1 ubuntu ubuntu    0 May 10 16:13 __init__.py
+drwxrwxr-x 2 ubuntu ubuntu 4096 Sep  3 14:29 __pycache__
+(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ # Create migrations in dependency order
+
+echo "ߓ Creating base app migrations..."
+python manage.py makemigrations users
+python manage.py makemigrations core
+
+echo "ߓ Creating independent app migrations..."
+python manage.py makemigrations menu
+python manage.py makemigrations rooms
+python manage.py makemigrations inventory
+python manage.py makemigrations notifications
+
+echo "ߓ Creating dependent app migrations..."
+python manage.py makemigrations staff    # depends on users
+python manage.py makemigrations tables   # depends on users, menu
+python manage.py makemigrations bills    # depends on users, rooms, menu
+
+echo "✅ Fresh migrations created for all apps"
+ߓ Creating base app migrations...
+Traceback (most recent call last):
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
+    main()
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 416, in execute
+    django.setup()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/__init__.py", line 24, in setup
+    apps.populate(settings.INSTALLED_APPS)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 91, in populate
+    app_config = AppConfig.create(entry)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/config.py", line 123, in create
+    mod = import_module(mod_path)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/apps.py", line 8, in <module>
+    from .checks import check_models_permissions, check_user_model
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/checks.py", line 8, in <module>
+    from .management import _get_builtin_permissions
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/management/__init__.py", line 9, in <module>
+    from django.contrib.contenttypes.management import create_contenttypes
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/contenttypes/management/__init__.py", line 2, in <module>
+    from django.db import DEFAULT_DB_ALIAS, IntegrityError, migrations, router, transaction
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/migrations/__init__.py", line 1, in <module>
+    from .migration import Migration, swappable_dependency  # NOQA
+ModuleNotFoundError: No module named 'django.db.migrations.migration'
+Traceback (most recent call last):
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
+    main()
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 416, in execute
+    django.setup()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/__init__.py", line 24, in setup
+    apps.populate(settings.INSTALLED_APPS)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 91, in populate
+    app_config = AppConfig.create(entry)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/config.py", line 123, in create
+    mod = import_module(mod_path)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/apps.py", line 8, in <module>
+    from .checks import check_models_permissions, check_user_model
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/checks.py", line 8, in <module>
+    from .management import _get_builtin_permissions
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/management/__init__.py", line 9, in <module>
+    from django.contrib.contenttypes.management import create_contenttypes
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/contenttypes/management/__init__.py", line 2, in <module>
+    from django.db import DEFAULT_DB_ALIAS, IntegrityError, migrations, router, transaction
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/migrations/__init__.py", line 1, in <module>
+    from .migration import Migration, swappable_dependency  # NOQA
+ModuleNotFoundError: No module named 'django.db.migrations.migration'
+ߓ Creating independent app migrations...
+Traceback (most recent call last):
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
+    main()
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 416, in execute
+    django.setup()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/__init__.py", line 24, in setup
+    apps.populate(settings.INSTALLED_APPS)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 91, in populate
+    app_config = AppConfig.create(entry)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/config.py", line 123, in create
+    mod = import_module(mod_path)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/apps.py", line 8, in <module>
+    from .checks import check_models_permissions, check_user_model
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/checks.py", line 8, in <module>
+    from .management import _get_builtin_permissions
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/management/__init__.py", line 9, in <module>
+    from django.contrib.contenttypes.management import create_contenttypes
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/contenttypes/management/__init__.py", line 2, in <module>
+    from django.db import DEFAULT_DB_ALIAS, IntegrityError, migrations, router, transaction
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/migrations/__init__.py", line 1, in <module>
+    from .migration import Migration, swappable_dependency  # NOQA
+ModuleNotFoundError: No module named 'django.db.migrations.migration'
+Traceback (most recent call last):
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
+    main()
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 416, in execute
+    django.setup()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/__init__.py", line 24, in setup
+    apps.populate(settings.INSTALLED_APPS)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 91, in populate
+    app_config = AppConfig.create(entry)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/config.py", line 123, in create
+    mod = import_module(mod_path)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/apps.py", line 8, in <module>
+    from .checks import check_models_permissions, check_user_model
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/checks.py", line 8, in <module>
+    from .management import _get_builtin_permissions
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/management/__init__.py", line 9, in <module>
+    from django.contrib.contenttypes.management import create_contenttypes
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/contenttypes/management/__init__.py", line 2, in <module>
+    from django.db import DEFAULT_DB_ALIAS, IntegrityError, migrations, router, transaction
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/migrations/__init__.py", line 1, in <module>
+    from .migration import Migration, swappable_dependency  # NOQA
+ModuleNotFoundError: No module named 'django.db.migrations.migration'
+Traceback (most recent call last):
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
+    main()
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 416, in execute
+    django.setup()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/__init__.py", line 24, in setup
+    apps.populate(settings.INSTALLED_APPS)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 91, in populate
+    app_config = AppConfig.create(entry)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/config.py", line 123, in create
+    mod = import_module(mod_path)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/apps.py", line 8, in <module>
+    from .checks import check_models_permissions, check_user_model
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/checks.py", line 8, in <module>
+    from .management import _get_builtin_permissions
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/management/__init__.py", line 9, in <module>
+    from django.contrib.contenttypes.management import create_contenttypes
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/contenttypes/management/__init__.py", line 2, in <module>
+    from django.db import DEFAULT_DB_ALIAS, IntegrityError, migrations, router, transaction
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/migrations/__init__.py", line 1, in <module>
+    from .migration import Migration, swappable_dependency  # NOQA
+ModuleNotFoundError: No module named 'django.db.migrations.migration'
+Traceback (most recent call last):
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
+    main()
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 416, in execute
+    django.setup()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/__init__.py", line 24, in setup
+    apps.populate(settings.INSTALLED_APPS)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 91, in populate
+    app_config = AppConfig.create(entry)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/config.py", line 123, in create
+    mod = import_module(mod_path)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/apps.py", line 8, in <module>
+    from .checks import check_models_permissions, check_user_model
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/checks.py", line 8, in <module>
+    from .management import _get_builtin_permissions
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/management/__init__.py", line 9, in <module>
+    from django.contrib.contenttypes.management import create_contenttypes
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/contenttypes/management/__init__.py", line 2, in <module>
+    from django.db import DEFAULT_DB_ALIAS, IntegrityError, migrations, router, transaction
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/migrations/__init__.py", line 1, in <module>
+    from .migration import Migration, swappable_dependency  # NOQA
+ModuleNotFoundError: No module named 'django.db.migrations.migration'
+ߓ Creating dependent app migrations...
+Traceback (most recent call last):
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
+    main()
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 416, in execute
+    django.setup()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/__init__.py", line 24, in setup
+    apps.populate(settings.INSTALLED_APPS)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 91, in populate
+    app_config = AppConfig.create(entry)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/config.py", line 123, in create
+    mod = import_module(mod_path)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/apps.py", line 8, in <module>
+    from .checks import check_models_permissions, check_user_model
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/checks.py", line 8, in <module>
+    from .management import _get_builtin_permissions
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/management/__init__.py", line 9, in <module>
+    from django.contrib.contenttypes.management import create_contenttypes
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/contenttypes/management/__init__.py", line 2, in <module>
+    from django.db import DEFAULT_DB_ALIAS, IntegrityError, migrations, router, transaction
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/migrations/__init__.py", line 1, in <module>
+    from .migration import Migration, swappable_dependency  # NOQA
+ModuleNotFoundError: No module named 'django.db.migrations.migration'
+Traceback (most recent call last):
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
+    main()
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 416, in execute
+    django.setup()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/__init__.py", line 24, in setup
+    apps.populate(settings.INSTALLED_APPS)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 91, in populate
+    app_config = AppConfig.create(entry)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/config.py", line 123, in create
+    mod = import_module(mod_path)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/apps.py", line 8, in <module>
+    from .checks import check_models_permissions, check_user_model
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/checks.py", line 8, in <module>
+    from .management import _get_builtin_permissions
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/management/__init__.py", line 9, in <module>
+    from django.contrib.contenttypes.management import create_contenttypes
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/contenttypes/management/__init__.py", line 2, in <module>
+    from django.db import DEFAULT_DB_ALIAS, IntegrityError, migrations, router, transaction
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/migrations/__init__.py", line 1, in <module>
+    from .migration import Migration, swappable_dependency  # NOQA
+ModuleNotFoundError: No module named 'django.db.migrations.migration'
+Traceback (most recent call last):
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
+    main()
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 416, in execute
+    django.setup()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/__init__.py", line 24, in setup
+    apps.populate(settings.INSTALLED_APPS)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 91, in populate
+    app_config = AppConfig.create(entry)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/config.py", line 123, in create
+    mod = import_module(mod_path)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/apps.py", line 8, in <module>
+    from .checks import check_models_permissions, check_user_model
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/checks.py", line 8, in <module>
+    from .management import _get_builtin_permissions
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/auth/management/__init__.py", line 9, in <module>
+    from django.contrib.contenttypes.management import create_contenttypes
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/contenttypes/management/__init__.py", line 2, in <module>
+    from django.db import DEFAULT_DB_ALIAS, IntegrityError, migrations, router, transaction
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/migrations/__init__.py", line 1, in <module>
+    from .migration import Migration, swappable_dependency  # NOQA
+ModuleNotFoundError: No module named 'django.db.migrations.migration'
+✅ Fresh migrations created for all apps
+(venv) ubuntu@hotel-management-server:~/hotel-management-backend$
