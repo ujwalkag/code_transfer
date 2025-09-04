@@ -1,3 +1,9 @@
+-- Just run these key commands:
+ALTER TABLE staff_attendance ADD COLUMN created_by_id INTEGER;
+ALTER TABLE staff_attendance ADD CONSTRAINT staff_attendance_created_by_id_fkey 
+  FOREIGN KEY (created_by_id) REFERENCES users_customuser(id) ON DELETE SET NULL;
+
+//
 # ߚ COMPLETE SOLUTION FOR ALL ISSUES
 
 ## ߔ **EXACT PROBLEMS IDENTIFIED:**
