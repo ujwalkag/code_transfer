@@ -30,3 +30,109 @@ NameError: name 'users' is not defined
 >>> print("✅ All user permissions fixed!")
 ✅ All user permissions fixed!
 >>>
+/////////////////////////////////////
+# ߔ CORRECT DJANGO SHELL COMMANDS
+
+## Run these commands in Django shell (python manage.py shell):
+
+```python
+# STEP 1: Import the required model
+from apps.users.models import CustomUser
+
+# STEP 2: Get all users
+users = CustomUser.objects.all()
+print(f"Found {users.count()} users to fix")
+
+# STEP 3: Fix permissions for each user
+for user in users:
+    print(f"Processing {user.email} (current role: {user.role})")
+    
+    if user.role == 'admin':
+        user.can_create_orders = True
+        user.can_generate_bills = True
+        user.can_access_kitchen = True
+    elif user.role == 'staff':
+        user.can_create_orders = True
+        user.can_generate_bills = True
+        user.can_access_kitchen = True
+    elif user.role == 'waiter':
+        user.can_create_orders = True
+        user.can_generate_bills = False
+        user.can_access_kitchen = False
+    elif user.role == 'biller':
+        user.can_create_orders = False
+        user.can_generate_bills = True
+        user.can_access_kitchen = False
+    else:
+        # Default for any other role
+        user.can_create_orders = False
+        user.can_generate_bills = False
+        user.can_access_kitchen = False
+    
+    user.save()
+    print(f"✅ Fixed {user.email}: {user.role} - Orders:{user.can_create_orders}, Bills:{user.can_generate_bills}, Kitchen:{user.can_access_kitchen}")
+
+print("ߎ All user permissions fixed successfully!")
+
+# STEP 4: Verify the changes
+print("\nߓ VERIFICATION - Current user permissions:")
+for user in CustomUser.objects.all():
+    print(f"{user.email} ({user.role}): Orders={user.can_create_orders}, Bills={user.can_generate_bills}, Kitchen={user.can_access_kitchen}")
+```
+
+## Alternative One-Liner Commands:
+
+If you want to run it line by line, copy-paste these one at a time:
+
+```python
+from apps.users.models import CustomUser
+```
+
+```python
+users = CustomUser.objects.all()
+```
+
+```python
+for user in users:
+    if user.role == 'admin':
+        user.can_create_orders = True
+        user.can_generate_bills = True
+        user.can_access_kitchen = True
+    elif user.role == 'staff':
+        user.can_create_orders = True
+        user.can_generate_bills = True
+        user.can_access_kitchen = True
+    elif user.role == 'waiter':
+        user.can_create_orders = True
+        user.can_generate_bills = False
+        user.can_access_kitchen = False
+    elif user.role == 'biller':
+        user.can_create_orders = False
+        user.can_generate_bills = True
+        user.can_access_kitchen = False
+    user.save()
+    print(f"Fixed {user.email}: {user.role}")
+```
+
+```python
+print("✅ All user permissions fixed!")
+```
+
+## Quick Test Command:
+
+After fixing, run this to verify:
+
+```python
+for user in CustomUser.objects.all():
+    print(f"{user.email} - Role: {user.role}, Can Create Orders: {user.can_create_orders}, Can Generate Bills: {user.can_generate_bills}, Can Access Kitchen: {user.can_access_kitchen}")
+```
+
+## Expected Output:
+You should see something like:
+```
+admin@example.com - Role: admin, Can Create Orders: True, Can Generate Bills: True, Can Access Kitchen: True
+staff@example.com - Role: staff, Can Create Orders: True, Can Generate Bills: True, Can Access Kitchen: True
+waiter@example.com - Role: waiter, Can Create Orders: True, Can Generate Bills: False, Can Access Kitchen: False
+```
+
+**Run the import command first, then the rest will work!**
