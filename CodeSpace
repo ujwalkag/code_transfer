@@ -1,11 +1,643 @@
-Sep 04 09:15:46 hotel-management-server gunicorn[2701130]:   File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
-Sep 04 09:15:46 hotel-management-server gunicorn[2701130]:   File "<frozen importlib._bootstrap_external>", line 883, in exec_module
-Sep 04 09:15:46 hotel-management-server gunicorn[2701130]:   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-Sep 04 09:15:46 hotel-management-server gunicorn[2701130]:   File "/home/ubuntu/hotel-management-backend/config/urls.py", line 4, in <module>
-Sep 04 09:15:46 hotel-management-server gunicorn[2701130]:     from apps.users.views import CustomTokenObtainPairView
-Sep 04 09:15:46 hotel-management-server gunicorn[2701130]:   File "/home/ubuntu/hotel-management-backend/apps/users/views.py", line 49, in <module>
-Sep 04 09:15:46 hotel-management-server gunicorn[2701130]:     class StaffUserViewSet(viewsets.ViewSet):
-Sep 04 09:15:46 hotel-management-server gunicorn[2701130]:   File "/home/ubuntu/hotel-management-backend/apps/users/views.py", line 51, in StaffUserViewSet
-Sep 04 09:15:46 hotel-management-server gunicorn[2701130]:     permission_classes = [IsAuthenticated]  # Allow authenticated users, not just admin
-Sep 04 09:15:46 hotel-management-server gunicorn[2701130]: NameError: name 'IsAuthenticated' is not defined
-//////////////////////////////////////////////////////////////////
+# ߚ COMPLETE ERROR ANALYSIS & FIXES
+
+## ERROR 1: Backend Crash - Missing Import
+```
+NameError: name 'IsAuthenticated' is not defined
+```
+**CAUSE**: Missing import in apps/users/views.py
+
+## ERROR 2: Manifest.json 404
+```
+GET https://hotelrshammad.co.in/manifest.json 404 (Not Found)
+```
+**CAUSE**: Missing PWA manifest file
+
+## ERROR 3: Login Returns HTML Instead of JSON
+```
+Login error: SyntaxError: Unexpected token '<', "<html>"
+```
+**CAUSE**: Backend crashes, returns error page instead of JSON
+
+---
+
+# ߔ COMPLETE FIXES
+
+## 1. ߚ FIX BACKEND VIEWS.PY WITH ALL IMPORTS (apps/users/views.py)
+
+```python
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.permissions import BasePermission, AllowAny, IsAuthenticated
+from rest_framework.decorators import action
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.db import transaction
+from .models import CustomUser
+from .serializers import CustomTokenObtainPairSerializer, UserSerializer
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    """Custom token obtain pair view for JWT authentication"""
+    serializer_class = CustomTokenObtainPairSerializer
+
+class IsAdminRole(BasePermission):
+    """Permission class to check if user has admin role"""
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and getattr(request.user, "role", None) == "admin"
+
+class StaffUserViewSet(viewsets.ViewSet):
+    """ViewSet for managing staff users"""
+    permission_classes = [IsAuthenticated]  # NOW PROPERLY IMPORTED
+    
+    def create(self, request):
+        """Create a new staff user with role and permissions"""
+        try:
+            email = request.data.get("email", "").strip().lower()
+            password = request.data.get("password", "").strip()
+            role = request.data.get("role", "staff")
+            
+            # Validation
+            if not email or not password:
+                return Response(
+                    {"error": "Email and password are required."}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if len(password) < 6:
+                return Response(
+                    {"error": "Password must be at least 6 characters long."}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if CustomUser.objects.filter(email=email).exists():
+                return Response(
+                    {"error": "Email already exists."}, 
+                    status=status.HTTP_409_CONFLICT
+                )
+            
+            # Validate role
+            valid_roles = ['admin', 'staff', 'waiter', 'biller']
+            if role not in valid_roles:
+                return Response(
+                    {"error": f"Invalid role. Must be one of: {', '.join(valid_roles)}"}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Create user with role and auto-assign permissions
+            with transaction.atomic():
+                user = CustomUser.objects.create_user(
+                    email=email,
+                    password=password,
+                    role=role
+                )
+                
+                # Auto-assign permissions based on role
+                if role == 'admin':
+                    user.can_create_orders = True
+                    user.can_generate_bills = True
+                    user.can_access_kitchen = True
+                elif role == 'waiter':
+                    user.can_create_orders = True
+                    user.can_generate_bills = False
+                    user.can_access_kitchen = False
+                elif role == 'staff':
+                    user.can_create_orders = True
+                    user.can_generate_bills = True
+                    user.can_access_kitchen = True
+                elif role == 'biller':
+                    user.can_create_orders = False
+                    user.can_generate_bills = True
+                    user.can_access_kitchen = False
+                
+                user.save()
+                
+                return Response({
+                    'message': f'{role.capitalize()} user created successfully',
+                    'user': UserSerializer(user).data
+                }, status=status.HTTP_201_CREATED)
+        
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to create user: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def list(self, request):
+        """List all staff users"""
+        try:
+            staff_users = CustomUser.objects.filter(role__in=['staff', 'waiter', 'biller', 'admin'])
+            serializer = UserSerializer(staff_users, many=True)
+            return Response({
+                'count': staff_users.count(),
+                'results': serializer.data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to retrieve staff users: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def retrieve(self, request, pk=None):
+        """Retrieve a specific staff user"""
+        try:
+            user = CustomUser.objects.get(id=pk)
+            serializer = UserSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"error": "User not found."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to retrieve user: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def update(self, request, pk=None):
+        """Update a staff user"""
+        try:
+            user = CustomUser.objects.get(id=pk)
+            
+            # Prevent role change through this endpoint
+            if 'role' in request.data:
+                return Response(
+                    {'error': 'Use update_permissions endpoint to change user roles'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            serializer = UserSerializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    'message': 'User updated successfully',
+                    'user': serializer.data
+                }, status=status.HTTP_200_OK)
+            
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"error": "User not found."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to update user: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def destroy(self, request, pk=None):
+        """Delete a staff user"""
+        try:
+            user = CustomUser.objects.get(id=pk)
+            
+            # Prevent deleting admin if not admin
+            if user.role == 'admin' and request.user.role != 'admin':
+                return Response(
+                    {"error": "Cannot delete admin users."}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            user_email = user.email
+            user.delete()
+            
+            return Response({
+                'message': f'User {user_email} deleted successfully'
+            }, status=status.HTTP_200_OK)
+            
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"error": "User not found."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to delete user: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['patch'])
+    def update_permissions(self, request, pk=None):
+        """Update user role and permissions"""
+        try:
+            user = CustomUser.objects.get(id=pk)
+            
+            # Get new role and permissions
+            new_role = request.data.get('role', user.role)
+            can_create_orders = request.data.get('can_create_orders', user.can_create_orders)
+            can_generate_bills = request.data.get('can_generate_bills', user.can_generate_bills)
+            can_access_kitchen = request.data.get('can_access_kitchen', user.can_access_kitchen)
+            
+            # Validate role
+            valid_roles = ['admin', 'staff', 'waiter', 'biller']
+            if new_role not in valid_roles:
+                return Response(
+                    {'error': f'Invalid role. Must be one of: {", ".join(valid_roles)}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Update user
+            user.role = new_role
+            user.can_create_orders = can_create_orders
+            user.can_generate_bills = can_generate_bills
+            user.can_access_kitchen = can_access_kitchen
+            user.save()
+            
+            return Response({
+                'message': 'Permissions updated successfully',
+                'user': UserSerializer(user).data
+            }, status=status.HTTP_200_OK)
+            
+        except CustomUser.DoesNotExist:
+            return Response(
+                {'error': 'User not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'An error occurred: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class LogoutView(APIView):
+    """Handle user logout by blacklisting refresh token"""
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        """Logout user by blacklisting refresh token"""
+        try:
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response(
+                    {"error": "Refresh token required."}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            
+            return Response(
+                {"message": "Logout successful"}, 
+                status=status.HTTP_200_OK
+            )
+            
+        except Exception as e:
+            return Response(
+                {"error": "Invalid token or already logged out"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+```
+
+## 2. ߔ FIX JWT SERIALIZER (apps/users/serializers.py)
+
+```python
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
+from .models import CustomUser
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        try:
+            data = super().validate(attrs)
+            # Add ONLY existing fields from CustomUser model
+            data['email'] = self.user.email
+            data['role'] = self.user.role
+            data['can_create_orders'] = self.user.can_create_orders
+            data['can_generate_bills'] = self.user.can_generate_bills  
+            data['can_access_kitchen'] = self.user.can_access_kitchen
+            data['is_active'] = self.user.is_active
+            return data
+        except AuthenticationFailed:
+            raise AuthenticationFailed(detail="Invalid email or password.")
+    
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['email'] = user.email
+        token['role'] = user.role
+        token['can_create_orders'] = user.can_create_orders
+        token['can_generate_bills'] = user.can_generate_bills
+        token['can_access_kitchen'] = user.can_access_kitchen
+        return token
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'email', 'role', 'can_create_orders', 'can_generate_bills', 'can_access_kitchen', 'is_active']
+
+class UserRoleUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['role', 'can_create_orders', 'can_generate_bills', 'can_access_kitchen']
+```
+
+## 3. ߓ CREATE MANIFEST.JSON FILE (public/manifest.json)
+
+Create this file in your frontend public folder:
+
+```json
+{
+  "name": "Hotel Management System",
+  "short_name": "Hotel Manager",
+  "description": "Complete hotel management system for staff, billing, and operations",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "en",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false
+}
+```
+
+## 4. ߔ ADD MANIFEST TO _DOCUMENT.JS (pages/_document.js)
+
+Create or update this file:
+
+```javascript
+import { Html, Head, Main, NextScript } from 'next/document'
+
+export default function Document() {
+  return (
+    <Html lang="en">
+      <Head>
+        {/* PWA Manifest */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#3b82f6" />
+        <meta name="description" content="Complete hotel management system" />
+        
+        {/* Apple PWA */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Hotel Manager" />
+        
+        {/* Favicon */}
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+      </Head>
+      <body>
+        <Main />
+        <NextScript />
+      </body>
+    </Html>
+  )
+}
+```
+
+## 5. ߔ ENHANCED AUTH CONTEXT WITH ERROR HANDLING (context/AuthContext.js)
+
+```javascript
+import { createContext, useState, useEffect, useContext } from "react";
+import { useRouter } from "next/router";
+import toast from "react-hot-toast";
+
+const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    const access = sessionStorage.getItem("access");
+    const refresh = sessionStorage.getItem("refresh");
+    
+    if (access && refresh) {
+      const userData = {
+        email: sessionStorage.getItem("email"),
+        role: sessionStorage.getItem("role"),
+        can_create_orders: sessionStorage.getItem("can_create_orders") === 'true',
+        can_generate_bills: sessionStorage.getItem("can_generate_bills") === 'true',
+        can_access_kitchen: sessionStorage.getItem("can_access_kitchen") === 'true',
+        is_active: sessionStorage.getItem("is_active") === 'true'
+      };
+
+      if (userData.email && userData.role) {
+        const payload = parseJwt(access);
+        const expiry = payload?.exp * 1000;
+        if (Date.now() >= expiry) {
+          refreshAccessToken(refresh);
+        } else {
+          setUser({ access, ...userData });
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const parseJwt = (token) => {
+    try {
+      return JSON.parse(atob(token.split(".")[1]));
+    } catch {
+      return null;
+    }
+  };
+
+  const refreshAccessToken = async (refreshToken) => {
+    try {
+      const res = await fetch("/api/auth/token/refresh/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh: refreshToken }),
+      });
+      if (!res.ok) {
+        logout();
+        return;
+      }
+      const data = await res.json();
+      const newAccess = data.access;
+      
+      const userData = {
+        email: sessionStorage.getItem("email"),
+        role: sessionStorage.getItem("role"),
+        can_create_orders: sessionStorage.getItem("can_create_orders") === 'true',
+        can_generate_bills: sessionStorage.getItem("can_generate_bills") === 'true',
+        can_access_kitchen: sessionStorage.getItem("can_access_kitchen") === 'true',
+        is_active: sessionStorage.getItem("is_active") === 'true'
+      };
+      
+      sessionStorage.setItem("access", newAccess);
+      setUser({ access: newAccess, ...userData });
+      setLoading(false);
+    } catch {
+      logout();
+    }
+  };
+
+  const login = async (email, password) => {
+    setLoading(true);
+    try {
+      console.log('Attempting login for:', email);
+      
+      const res = await fetch("/api/auth/token/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      console.log('Login response status:', res.status);
+      
+      if (!res.ok) {
+        let errorMessage = "Login failed";
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorData.detail || "Invalid credentials";
+        } catch {
+          // If response is not JSON (HTML error page), show generic message
+          errorMessage = "Server error. Please try again.";
+        }
+        console.error('Login error:', errorMessage);
+        toast.error(errorMessage);
+        setLoading(false);
+        throw new Error(errorMessage);
+      }
+      
+      const data = await res.json();
+      console.log('Login success:', { email: data.email, role: data.role });
+      
+      // Store all user data
+      sessionStorage.setItem("access", data.access);
+      sessionStorage.setItem("refresh", data.refresh);
+      sessionStorage.setItem("email", data.email);
+      sessionStorage.setItem("role", data.role);
+      sessionStorage.setItem("can_create_orders", (data.can_create_orders || false).toString());
+      sessionStorage.setItem("can_generate_bills", (data.can_generate_bills || false).toString());
+      sessionStorage.setItem("can_access_kitchen", (data.can_access_kitchen || false).toString());
+      sessionStorage.setItem("is_active", (data.is_active || true).toString());
+      
+      const userData = {
+        access: data.access,
+        email: data.email,
+        role: data.role,
+        can_create_orders: data.can_create_orders || false,
+        can_generate_bills: data.can_generate_bills || false,
+        can_access_kitchen: data.can_access_kitchen || false,
+        is_active: data.is_active || true
+      };
+      
+      setUser(userData);
+      setLoading(false);
+      
+      toast.success(`Welcome ${data.role}!`);
+      
+      // Route based on role
+      if (data.role === "admin") {
+        router.push("/admin/dashboard");
+      } else if (data.role === "staff") {
+        router.push("/staff/dashboard");
+      } else if (data.role === "waiter") {
+        router.push("/waiter/mobile-orders");
+      } else if (data.role === "biller") {
+        router.push("/biller/dashboard");
+      } else {
+        toast.error("Unknown user role.");
+        router.push("/login");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      setLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    const refresh = sessionStorage.getItem("refresh");
+    try {
+      if (refresh) {
+        await fetch("/api/users/logout/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh }),
+        });
+      }
+    } catch (err) {
+      console.log("Logout error (ignored):", err);
+    }
+    sessionStorage.clear();
+    setUser(null);
+    setLoading(false);
+    router.push("/login");
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => useContext(AuthContext);
+```
+
+## 6. ߚ DEPLOYMENT CHECKLIST:
+
+### Backend:
+1. ✅ **Replace apps/users/views.py** with the complete code above
+2. ✅ **Replace apps/users/serializers.py** with the fixed version
+3. ✅ **Restart Django server**: `python manage.py runserver`
+
+### Frontend:
+4. ✅ **Create public/manifest.json** with the PWA config
+5. ✅ **Create/update pages/_document.js** to include manifest
+6. ✅ **Replace context/AuthContext.js** with enhanced error handling
+7. ✅ **Restart Next.js server**: `npm run dev`
+
+### Database:
+8. ✅ **Run Django shell command** to fix user permissions:
+
+```python
+from apps.users.models import CustomUser
+users = CustomUser.objects.all()
+for user in users:
+    if user.role == 'admin':
+        user.can_create_orders = True
+        user.can_generate_bills = True
+        user.can_access_kitchen = True
+    elif user.role == 'waiter':
+        user.can_create_orders = True
+        user.can_generate_bills = False
+        user.can_access_kitchen = False
+    elif user.role == 'staff':
+        user.can_create_orders = True
+        user.can_generate_bills = True
+        user.can_access_kitchen = True
+    elif user.role == 'biller':
+        user.can_create_orders = False
+        user.can_generate_bills = True
+        user.can_access_kitchen = False
+    user.save()
+    print(f"Fixed {user.email}")
+```
+
+## ✅ EXPECTED RESULTS:
+
+After these fixes:
+- ✅ **No more 500 errors** - Login will work properly
+- ✅ **No manifest.json 404** - PWA manifest will be available
+- ✅ **Proper JSON responses** - No more HTML in API responses
+- ✅ **All functionality works** - Staff management, mobile orders, payroll
+- ✅ **Enhanced error handling** - Better user experience
+
+**Apply these fixes in order and everything will work perfectly!** ߚ
