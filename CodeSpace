@@ -1,24 +1,29 @@
-ubuntu@hotel-management-server:~$ sudo systemctl status gunicorn
-● gunicorn.service - gunicorn daemon for hotel-management-backend
-     Loaded: loaded (/etc/systemd/system/gunicorn.service; disabled; vendor preset: enabled)
-     Active: active (running) since Thu 2025-09-04 13:44:42 UTC; 14min ago
-   Main PID: 2709174 (gunicorn)
-      Tasks: 4 (limit: 28689)
-     Memory: 231.7M
-        CPU: 4.122s
-     CGroup: /system.slice/gunicorn.service
-             ├─2709174 /home/ubuntu/hotel-management-backend/venv/bin/python3 /home/ubuntu/hotel-management-backend/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 con>
-             ├─2709182 /home/ubuntu/hotel-management-backend/venv/bin/python3 /home/ubuntu/hotel-management-backend/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 con>
-             ├─2709189 /home/ubuntu/hotel-management-backend/venv/bin/python3 /home/ubuntu/hotel-management-backend/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 con>
-             └─2709190 /home/ubuntu/hotel-management-backend/venv/bin/python3 /home/ubuntu/hotel-management-backend/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 con>
+ALTER TABLE staff_attendance ADD COLUMN IF NOT EXISTS break_duration INTERVAL DEFAULT '00:00:00';
 
-Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:     return executor(sql, params, many, context)
-Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", li>
-Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:     with self.db.wrap_database_errors:
-Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/utils.py", line 91, in>
-Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:     raise dj_exc_value.with_traceback(traceback) from exc_value
-Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", li>
-Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:     return self.cursor.execute(sql, params)
-Sep 04 13:51:59 hotel-management-server gunicorn[2709182]: django.db.utils.ProgrammingError: column staff_attendance.break_duration does not exist
-Sep 04 13:51:59 hotel-management-server gunicorn[2709182]: LINE 1: ...ck_in_time", "staff_attendance"."check_out_time", "staff_att...
-Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:          
+- <input type="email" placeholder="Email for Login *" ... />
+- <input type="password" placeholder="Password (default: default123)" ... />
+
+
+<QuickActionCard 
+  href="/admin/manage-categories"
+  icon="ߏ️"
+  title="Menu Categories"
+  subtitle="Manage food categories"
+  description="Add and organize menu categories"
+
+
+
+
+4. **Fix mobile orders table selection**  
+Ensure your mobile-orders page imports and uses the `/api/tables/mobile/tables_layout/` endpoint, and that your Next.js rewrites include:
+```js
+async rewrites() {
+  return [
+    { source: '/api/tables/mobile/:path*', destination: 'https://hotelrshammad.co.in/api/tables/mobile/:path*' },
+    // ...other rewrites
+  ];
+}
+
+
+
+const res = await fetch('/api/tables/mobile/tables_layout/', { headers: { Authorization: `Bearer ${user.access}` } });
