@@ -1,46 +1,24 @@
--- Connect to your PostgreSQL/MySQL database and run:
+ubuntu@hotel-management-server:~$ sudo systemctl status gunicorn
+● gunicorn.service - gunicorn daemon for hotel-management-backend
+     Loaded: loaded (/etc/systemd/system/gunicorn.service; disabled; vendor preset: enabled)
+     Active: active (running) since Thu 2025-09-04 13:44:42 UTC; 14min ago
+   Main PID: 2709174 (gunicorn)
+      Tasks: 4 (limit: 28689)
+     Memory: 231.7M
+        CPU: 4.122s
+     CGroup: /system.slice/gunicorn.service
+             ├─2709174 /home/ubuntu/hotel-management-backend/venv/bin/python3 /home/ubuntu/hotel-management-backend/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 con>
+             ├─2709182 /home/ubuntu/hotel-management-backend/venv/bin/python3 /home/ubuntu/hotel-management-backend/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 con>
+             ├─2709189 /home/ubuntu/hotel-management-backend/venv/bin/python3 /home/ubuntu/hotel-management-backend/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 con>
+             └─2709190 /home/ubuntu/hotel-management-backend/venv/bin/python3 /home/ubuntu/hotel-management-backend/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 con>
 
--- 1. Fix staff_attendance table
-ALTER TABLE staff_attendance DROP CONSTRAINT IF EXISTS staff_attendance_created_by_id_fkey;
-ALTER TABLE staff_attendance DROP COLUMN IF EXISTS created_by_id;
-ALTER TABLE staff_attendance ADD COLUMN created_by_id INTEGER NULL;
-ALTER TABLE staff_attendance ADD CONSTRAINT staff_attendance_created_by_id_fkey 
-  FOREIGN KEY (created_by_id) REFERENCES users_customuser(id) ON DELETE SET NULL;
-
--- 2. Ensure all staff_profile columns exist
-ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS full_name VARCHAR(255) DEFAULT 'Staff Member';
-ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS phone VARCHAR(15) DEFAULT 'N/A';
-ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS address TEXT DEFAULT '';
-ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS date_of_birth DATE NULL;
-ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS hire_date DATE DEFAULT CURRENT_DATE;
-ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS department VARCHAR(20) DEFAULT 'service';
-ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS position VARCHAR(100) DEFAULT 'Staff';
-ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS base_salary DECIMAL(10,2) DEFAULT 0;
-ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS hourly_rate DECIMAL(8,2) DEFAULT 0;
-ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS employment_status VARCHAR(20) DEFAULT 'active';
-ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS emergency_contact_name VARCHAR(255) DEFAULT '';
-ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS emergency_contact_phone VARCHAR(15) DEFAULT '';
-
--- 3. Create missing tables if they don't exist
-CREATE TABLE IF NOT EXISTS staff_advance_payment (
-    id SERIAL PRIMARY KEY,
-    staff_id INTEGER REFERENCES staff_profile(id) ON DELETE CASCADE,
-    amount DECIMAL(10,2) NOT NULL,
-    reason TEXT NOT NULL,
-    request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'pending',
-    approved_by_id INTEGER REFERENCES users_customuser(id) ON DELETE SET NULL,
-    approved_date TIMESTAMP NULL,
-    paid_date TIMESTAMP NULL,
-    remaining_amount DECIMAL(10,2) NOT NULL,
-    monthly_deduction DECIMAL(10,2) DEFAULT 0,
-    notes TEXT DEFAULT ''
-);
-
--- 4. Update existing records with default values
-UPDATE staff_profile SET full_name = 'Staff Member' WHERE full_name IS NULL OR full_name = '';
-UPDATE staff_profile SET phone = 'N/A' WHERE phone IS NULL OR phone = '';
-UPDATE staff_profile SET department = 'service' WHERE department IS NULL OR department = '';
-UPDATE staff_profile SET position = 'Staff' WHERE position IS NULL OR position = '';
-
-COMMIT;
+Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:     return executor(sql, params, many, context)
+Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", li>
+Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:     with self.db.wrap_database_errors:
+Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/utils.py", line 91, in>
+Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:     raise dj_exc_value.with_traceback(traceback) from exc_value
+Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", li>
+Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:     return self.cursor.execute(sql, params)
+Sep 04 13:51:59 hotel-management-server gunicorn[2709182]: django.db.utils.ProgrammingError: column staff_attendance.break_duration does not exist
+Sep 04 13:51:59 hotel-management-server gunicorn[2709182]: LINE 1: ...ck_in_time", "staff_attendance"."check_out_time", "staff_att...
+Sep 04 13:51:59 hotel-management-server gunicorn[2709182]:          
