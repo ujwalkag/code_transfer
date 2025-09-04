@@ -3,6 +3,85 @@ ALTER TABLE staff_attendance ADD COLUMN created_by_id INTEGER;
 ALTER TABLE staff_attendance ADD CONSTRAINT staff_attendance_created_by_id_fkey 
   FOREIGN KEY (created_by_id) REFERENCES users_customuser(id) ON DELETE SET NULL;
 
+ALTER TABLE staff_attendance DROP COLUMN IF EXISTS created_by_id;
+ALTER TABLE staff_attendance ADD COLUMN created_by_id INTEGER NULL;
+ALTER TABLE staff_attendance ADD CONSTRAINT staff_attendance_created_by_id_fkey
+  FOREIGN KEY (created_by_id) REFERENCES users_customuser(id) ON DELETE SET NULL;
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+hotel_db=> ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS full_name VARCHAR(255) DEFAULT 'Staff Member';
+ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS phone VARCHAR(15) DEFAULT 'N/A';
+ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS address TEXT DEFAULT '';
+ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS date_of_birth DATE NULL;
+ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS hire_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS department VARCHAR(20) DEFAULT 'service';
+ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS position VARCHAR(100) DEFAULT 'Staff';
+ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS base_salary DECIMAL(10,2) DEFAULT 0;
+ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS hourly_rate DECIMAL(8,2) DEFAULT 0;
+ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS employment_status VARCHAR(20) DEFAULT 'active';
+ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS emergency_contact_name VARCHAR(255) DEFAULT '';
+ALTER TABLE staff_profile ADD COLUMN IF NOT EXISTS emergency_contact_phone VARCHAR(15) DEFAULT '';
+NOTICE:  column "full_name" of relation "staff_profile" already exists, skipping
+ALTER TABLE
+NOTICE:  column "phone" of relation "staff_profile" already exists, skipping
+ALTER TABLE
+NOTICE:  column "address" of relation "staff_profile" already exists, skipping
+ALTER TABLE
+NOTICE:  column "date_of_birth" of relation "staff_profile" already exists, skipping
+ALTER TABLE
+NOTICE:  column "hire_date" of relation "staff_profile" already exists, skipping
+ALTER TABLE
+NOTICE:  column "department" of relation "staff_profile" already exists, skipping
+ALTER TABLE
+NOTICE:  column "position" of relation "staff_profile" already exists, skipping
+ALTER TABLE
+NOTICE:  column "base_salary" of relation "staff_profile" already exists, skipping
+ALTER TABLE
+NOTICE:  column "hourly_rate" of relation "staff_profile" already exists, skipping
+ALTER TABLE
+NOTICE:  column "employment_status" of relation "staff_profile" already exists, skipping
+ALTER TABLE
+NOTICE:  column "emergency_contact_name" of relation "staff_profile" already exists, skipping
+ALTER TABLE
+NOTICE:  column "emergency_contact_phone" of relation "staff_profile" already exists, skipping
+ALTER TABLE
+hotel_db=> CREATE TABLE IF NOT EXISTS staff_advance_payment (
+    id SERIAL PRIMARY KEY,
+    staff_id INTEGER REFERENCES staff_profile(id) ON DELETE CASCADE,
+    amount DECIMAL(10,2) NOT NULL,
+    reason TEXT NOT NULL,
+    request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'pending',
+    approved_by_id INTEGER REFERENCES users_customuser(id) ON DELETE SET NULL,
+    approved_date TIMESTAMP NULL,
+    paid_date TIMESTAMP NULL,
+    remaining_amount DECIMAL(10,2) NOT NULL,
+    monthly_deduction DECIMAL(10,2) DEFAULT 0,
+    notes TEXT DEFAULT ''
+);
+NOTICE:  relation "staff_advance_payment" already exists, skipping
+CREATE TABLE
+hotel_db=> UPDATE staff_profile SET full_name = 'Staff Member' WHERE full_name IS NULL OR full_name = '';
+UPDATE staff_profile SET phone = 'N/A' WHERE phone IS NULL OR phone = '';
+UPDATE staff_profile SET department = 'service' WHERE department IS NULL OR department = '';
+UPDATE staff_profile SET position = 'Staff' WHERE position IS NULL OR position = '';
+
+COMMIT;
+UPDATE 0
+UPDATE 0
+UPDATE 0
+UPDATE 0
+WARNING:  there is no transaction in progress
+COMMIT
+hotel_db=> ALTER TABLE staff_attendance ADD COLUMN created_by_id INTEGER;
+ALTER TABLE staff_attendance ADD CONSTRAINT staff_attendance_created_by_id_fkey
+  FOREIGN KEY (created_by_id) REFERENCES users_customuser(id) ON DELETE SET NULL;
+ERROR:  column "created_by_id" of relation "staff_attendance" already exists
+ERROR:  constraint "staff_attendance_created_by_id_fkey" for relation "staff_attendance" already exists
+hotel_db=>
+
 //
 # ߚ COMPLETE SOLUTION FOR ALL ISSUES
 
