@@ -1,4 +1,49 @@
-Sep 04 10:02:52 hotel-management-server gunicorn[2703100]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", li>
+Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+/login:1 Manifest fetch from [https://hotelrshammad.co.in/manifest.json](https://hotelrshammad.co.in/manifest.json) failed, code 404Understand this error
+_app-c8e95143f501766a.js:1 Attempting login for: [admin@hotel.com](mailto:admin@hotel.com)
+_app-c8e95143f501766a.js:1 Login response status: 200
+_app-c8e95143f501766a.js:1 Login success: Object
+contentScript.js:1 URL changed:  [https://hotelrshammad.co.in/login](https://hotelrshammad.co.in/login)
+contentScript.js:1 websites:  Array(2)
+contentScript.js:1 Websites:  Array(4)
+contentScript.js:1 No website found
+contentScript.js:1 URL changed:  [https://hotelrshammad.co.in/admin/dashboard](https://hotelrshammad.co.in/admin/dashboard)
+contentScript.js:1 websites:  Array(4)
+contentScript.js:1 Websites:  Array(6)
+contentScript.js:1 No website found
+contentScript.js:1 URL changed:  [https://hotelrshammad.co.in/waiter/mobile-orders](https://hotelrshammad.co.in/waiter/mobile-orders)
+contentScript.js:1 websites:  Array(6)
+contentScript.js:1 Websites:  Array(8)
+contentScript.js:1 No website found
+contentScript.js:1 URL changed:  [https://hotelrshammad.co.in/admin/dashboard](https://hotelrshammad.co.in/admin/dashboard)
+contentScript.js:1 websites:  Array(8)
+contentScript.js:1 Websites:  Array(10)
+contentScript.js:1 No website found
+contentScript.js:1 URL changed:  [https://hotelrshammad.co.in/kitchen](https://hotelrshammad.co.in/kitchen)
+contentScript.js:1 websites:  Array(10)
+contentScript.js:1 Websites:  Array(12)
+contentScript.js:1 No website found
+kitchen-e6ffa64909b245d2.js:1 Kitchen API Response: Array(0)
+contentScript.js:1 URL changed:  [https://hotelrshammad.co.in/admin/dashboard](https://hotelrshammad.co.in/admin/dashboard)
+contentScript.js:1 websites:  Array(12)
+contentScript.js:1 Websites:  Array(14)
+contentScript.js:1 No website found
+contentScript.js:1 URL changed:  [https://hotelrshammad.co.in/admin/staff-management](https://hotelrshammad.co.in/admin/staff-management)
+contentScript.js:1 websites:  Array(14)
+contentScript.js:1 Websites:  Array(16)
+contentScript.js:1 No website found
+/api/staff/attendance/?month=9&year=2025:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+/api/staff/profiles/:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+contentScript.js:1 URL changed:  [https://hotelrshammad.co.in/admin/dashboard](https://hotelrshammad.co.in/admin/dashboard)
+contentScript.js:1 websites:  Array(16)
+contentScript.js:1 Websites:  Array(18)
+contentScript.js:1 No website found
+contentScript.js:1 URL changed:  [https://hotelrshammad.co.in/admin/manage-staff](https://hotelrshammad.co.in/admin/manage-staff)
+contentScript.js:1 websites:  Array(18)
+contentScript.js:1 Websites:  Array(20)
+contentScript.js:1 No website found
+/api/users/staff/2/:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+manifest.json:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error and Sep 04 10:02:52 hotel-management-server gunicorn[2703100]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/backends/utils.py", li>
 Sep 04 10:02:52 hotel-management-server gunicorn[2703100]:     with self.db.wrap_database_errors:
 Sep 04 10:02:52 hotel-management-server gunicorn[2703100]:   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/db/utils.py", line 91, in>
 Sep 04 10:02:52 hotel-management-server gunicorn[2703100]:     raise dj_exc_value.with_traceback(traceback) from exc_value
@@ -7,4 +52,4 @@ Sep 04 10:02:52 hotel-management-server gunicorn[2703100]:     return self.curso
 Sep 04 10:02:52 hotel-management-server gunicorn[2703100]: django.db.utils.ProgrammingError: column staff_profile.full_name does not exist
 Sep 04 10:02:52 hotel-management-server gunicorn[2703100]: LINE 1: ...rofile"."user_id", "staff_profile"."employee_id", "staff_pro...
 Sep 04 10:02:52 hotel-management-server gunicorn[2703100]:                                                              ^
-Sep 04 10:03:16 hotel-management-server gunicorn[2703098]: Internal Server Error: /api/users/staff/2/
+Sep 04 10:03:16 hotel-management-server gunicorn[2703098]: Internal Server Error: /api/users/staff/2/    now check complete github codes and hear me carefully we are having manage-staff which is managing staff role and unable to delete staff and staffmanagement for payroll there is no option to add delete create update delete functionality and even mobile order also not having option to select table or access menu and admindashboard also remove menu-category from frontend and i want clear instruction from basic for manifest.json what is required and whats not for this
