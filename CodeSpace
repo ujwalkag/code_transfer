@@ -1,61 +1,18 @@
-ubuntu@hotel-management-server:~/hotel-management-backend$ source venv/bin/activate
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ python manage.py makemigrations staff
-Traceback (most recent call last):
-  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
-    main()
-  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
-    execute_from_command_line(sys.argv)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
-    utility.execute()
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 436, in execute
-    self.fetch_command(subcommand).run_from_argv(self.argv)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 412, in run_from_argv
-    self.execute(*args, **cmd_options)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 453, in execute
-    self.check()
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 485, in check
-    all_issues = checks.run_checks(
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/checks/registry.py", line 88, in run_checks
-    new_errors = check(app_configs=app_configs, databases=databases)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/checks/urls.py", line 14, in check_url_config
-    return check_resolver(resolver)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/checks/urls.py", line 24, in check_resolver
-    return check_method()
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/resolvers.py", line 494, in check
-    for pattern in self.url_patterns:
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/utils/functional.py", line 57, in __get__
-    res = instance.__dict__[self.name] = self.func(instance)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/resolvers.py", line 715, in url_patterns
-    patterns = getattr(self.urlconf_module, "urlpatterns", self.urlconf_module)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/utils/functional.py", line 57, in __get__
-    res = instance.__dict__[self.name] = self.func(instance)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/resolvers.py", line 708, in urlconf_module
-    return import_module(self.urlconf_name)
-  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
-  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
-  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
-  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
-  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
-  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "/home/ubuntu/hotel-management-backend/config/urls.py", line 19, in <module>
-    path('api/tables/', include('apps.tables.urls')),
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/conf.py", line 38, in include
-    urlconf_module = import_module(urlconf_module)
-  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
-  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
-  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
-  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
-  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
-  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "/home/ubuntu/hotel-management-backend/apps/tables/urls.py", line 4, in <module>
-    from . import views
-  File "/home/ubuntu/hotel-management-backend/apps/tables/views.py", line 9, in <module>
-    from .serializers import TableSerializer, OrderSerializer, OrderItemSerializer
-ImportError: cannot import name 'TableSerializer' from 'apps.tables.serializers' (/home/ubuntu/hotel-management-backend/apps/tables/serializers.py)
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ vi ./apps/tables/serializers.py
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ vi apps/tables/views.py
-(venv) ubuntu@hotel-management-server:~/hotel-management-backend$
+# REPLACE the import section in views.py with this:
+from .serializers import (
+    RestaurantTableSerializer,
+    TableOrderSerializer, 
+    TableOrderCreateSerializer,
+    OrderItemSerializer,
+    OrderItemCreateSerializer,
+    KitchenDisplaySerializer,
+    OrderItemUpdateSerializer
+)
+
+serializer_class = TableSerializer
+
+serializer_class = RestaurantTableSerializer
+
+# DELETE THIS ENTIRE BLOCK FROM views.py:
+class PayrollStaff(models.Model):
+    # ... entire class definition
