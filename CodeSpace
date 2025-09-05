@@ -1,29 +1,121 @@
-ALTER TABLE staff_attendance ADD COLUMN IF NOT EXISTS break_duration INTERVAL DEFAULT '00:00:00';
-
-- <input type="email" placeholder="Email for Login *" ... />
-- <input type="password" placeholder="Password (default: default123)" ... />
-
-
-<QuickActionCard 
-  href="/admin/manage-categories"
-  icon="ߏ️"
-  title="Menu Categories"
-  subtitle="Manage food categories"
-  description="Add and organize menu categories"
-
-
-
-
-4. **Fix mobile orders table selection**  
-Ensure your mobile-orders page imports and uses the `/api/tables/mobile/tables_layout/` endpoint, and that your Next.js rewrites include:
-```js
-async rewrites() {
-  return [
-    { source: '/api/tables/mobile/:path*', destination: 'https://hotelrshammad.co.in/api/tables/mobile/:path*' },
-    // ...other rewrites
-  ];
-}
-
-
-
-const res = await fetch('/api/tables/mobile/tables_layout/', { headers: { Authorization: `Bearer ${user.access}` } });
+ubuntu@hotel-management-server:~/hotel-management-backend$ source venv/bin/activate
+python manage.py makemigrations
+python manage.py migrate
+sudo systemctl restart gunicorn
+Traceback (most recent call last):
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
+    main()
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 436, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 412, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 453, in execute
+    self.check()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 485, in check
+    all_issues = checks.run_checks(
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/checks/registry.py", line 88, in run_checks
+    new_errors = check(app_configs=app_configs, databases=databases)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/checks/urls.py", line 14, in check_url_config
+    return check_resolver(resolver)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/checks/urls.py", line 24, in check_resolver
+    return check_method()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/resolvers.py", line 494, in check
+    for pattern in self.url_patterns:
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/utils/functional.py", line 57, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/resolvers.py", line 715, in url_patterns
+    patterns = getattr(self.urlconf_module, "urlpatterns", self.urlconf_module)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/utils/functional.py", line 57, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/resolvers.py", line 708, in urlconf_module
+    return import_module(self.urlconf_name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/ubuntu/hotel-management-backend/config/urls.py", line 18, in <module>
+    path('api/staff/', include('apps.staff.urls')),
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/conf.py", line 38, in include
+    urlconf_module = import_module(urlconf_module)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/ubuntu/hotel-management-backend/apps/staff/urls.py", line 4, in <module>
+    from . import views
+  File "/home/ubuntu/hotel-management-backend/apps/staff/views.py", line 507, in <module>
+    class PayrollStaff(models.Model):
+NameError: name 'models' is not defined
+Traceback (most recent call last):
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
+    main()
+  File "/home/ubuntu/hotel-management-backend/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/__init__.py", line 436, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 412, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 458, in execute
+    output = self.handle(*args, **options)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 106, in wrapper
+    res = handle_func(*args, **kwargs)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/commands/migrate.py", line 100, in handle
+    self.check(databases=[database])
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/management/base.py", line 485, in check
+    all_issues = checks.run_checks(
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/checks/registry.py", line 88, in run_checks
+    new_errors = check(app_configs=app_configs, databases=databases)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/checks/urls.py", line 14, in check_url_config
+    return check_resolver(resolver)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/core/checks/urls.py", line 24, in check_resolver
+    return check_method()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/resolvers.py", line 494, in check
+    for pattern in self.url_patterns:
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/utils/functional.py", line 57, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/resolvers.py", line 715, in url_patterns
+    patterns = getattr(self.urlconf_module, "urlpatterns", self.urlconf_module)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/utils/functional.py", line 57, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/resolvers.py", line 708, in urlconf_module
+    return import_module(self.urlconf_name)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/ubuntu/hotel-management-backend/config/urls.py", line 18, in <module>
+    path('api/staff/', include('apps.staff.urls')),
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/urls/conf.py", line 38, in include
+    urlconf_module = import_module(urlconf_module)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/ubuntu/hotel-management-backend/apps/staff/urls.py", line 4, in <module>
+    from . import views
+  File "/home/ubuntu/hotel-management-backend/apps/staff/views.py", line 507, in <module>
+    class PayrollStaff(models.Model):
+NameError: name 'models' is not defined
+(venv) ubuntu@hotel-management-server:~/hotel-management-backend$
