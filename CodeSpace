@@ -10,10 +10,14 @@ Traceback (most recent call last):
     django.setup()
   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/__init__.py", line 24, in setup
     apps.populate(settings.INSTALLED_APPS)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 116, in populate
-    app_config.import_models()
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/config.py", line 269, in import_models
-    self.models_module = import_module(models_module_name)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 124, in populate
+    app_config.ready()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/admin/apps.py", line 27, in ready
+    self.module.autodiscover()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/admin/__init__.py", line 50, in autodiscover
+    autodiscover_modules("admin", register_to=site)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/utils/module_loading.py", line 58, in autodiscover_modules
+    import_module("%s.%s" % (app_config.name, module_to_search))
   File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
     return _bootstrap._gcd_import(name[level:], package, level)
   File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
@@ -22,11 +26,10 @@ Traceback (most recent call last):
   File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
   File "<frozen importlib._bootstrap_external>", line 883, in exec_module
   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "/home/ubuntu/hotel-management-backend/apps/staff/models.py", line 9, in <module>
-    class StaffProfile(models.Model):
-  File "/home/ubuntu/hotel-management-backend/apps/staff/models.py", line 31, in StaffProfile
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
-NameError: name 'CustomUser' is not defined
+  File "/home/ubuntu/hotel-management-backend/apps/tables/admin.py", line 3, in <module>
+    from .models import RestaurantTable, TableOrder, OrderItem, KitchenDisplayItem
+ImportError: cannot import name 'KitchenDisplayItem' from 'apps.tables.models' (/home/ubuntu/hotel-management-backend/apps/tables/models.py)
+(venv) ubuntu@hotel-management-server:~/hotel-management-backend$ vi apps/staff/models.py
 (venv) ubuntu@hotel-management-server:~/hotel-management-backend$ python manage.py makemigrations bills
 Traceback (most recent call last):
   File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
@@ -39,10 +42,14 @@ Traceback (most recent call last):
     django.setup()
   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/__init__.py", line 24, in setup
     apps.populate(settings.INSTALLED_APPS)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 116, in populate
-    app_config.import_models()
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/config.py", line 269, in import_models
-    self.models_module = import_module(models_module_name)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 124, in populate
+    app_config.ready()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/admin/apps.py", line 27, in ready
+    self.module.autodiscover()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/admin/__init__.py", line 50, in autodiscover
+    autodiscover_modules("admin", register_to=site)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/utils/module_loading.py", line 58, in autodiscover_modules
+    import_module("%s.%s" % (app_config.name, module_to_search))
   File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
     return _bootstrap._gcd_import(name[level:], package, level)
   File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
@@ -51,11 +58,9 @@ Traceback (most recent call last):
   File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
   File "<frozen importlib._bootstrap_external>", line 883, in exec_module
   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "/home/ubuntu/hotel-management-backend/apps/staff/models.py", line 9, in <module>
-    class StaffProfile(models.Model):
-  File "/home/ubuntu/hotel-management-backend/apps/staff/models.py", line 31, in StaffProfile
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
-NameError: name 'CustomUser' is not defined
+  File "/home/ubuntu/hotel-management-backend/apps/tables/admin.py", line 3, in <module>
+    from .models import RestaurantTable, TableOrder, OrderItem, KitchenDisplayItem
+ImportError: cannot import name 'KitchenDisplayItem' from 'apps.tables.models' (/home/ubuntu/hotel-management-backend/apps/tables/models.py)
 (venv) ubuntu@hotel-management-server:~/hotel-management-backend$ python manage.py makemigrations kitchen
 Traceback (most recent call last):
   File "/home/ubuntu/hotel-management-backend/manage.py", line 20, in <module>
@@ -68,10 +73,14 @@ Traceback (most recent call last):
     django.setup()
   File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/__init__.py", line 24, in setup
     apps.populate(settings.INSTALLED_APPS)
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 116, in populate
-    app_config.import_models()
-  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/config.py", line 269, in import_models
-    self.models_module = import_module(models_module_name)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/apps/registry.py", line 124, in populate
+    app_config.ready()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/admin/apps.py", line 27, in ready
+    self.module.autodiscover()
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/contrib/admin/__init__.py", line 50, in autodiscover
+    autodiscover_modules("admin", register_to=site)
+  File "/home/ubuntu/hotel-management-backend/venv/lib/python3.10/site-packages/django/utils/module_loading.py", line 58, in autodiscover_modules
+    import_module("%s.%s" % (app_config.name, module_to_search))
   File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
     return _bootstrap._gcd_import(name[level:], package, level)
   File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
@@ -80,9 +89,7 @@ Traceback (most recent call last):
   File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
   File "<frozen importlib._bootstrap_external>", line 883, in exec_module
   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "/home/ubuntu/hotel-management-backend/apps/staff/models.py", line 9, in <module>
-    class StaffProfile(models.Model):
-  File "/home/ubuntu/hotel-management-backend/apps/staff/models.py", line 31, in StaffProfile
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
-NameError: name 'CustomUser' is not defined
+  File "/home/ubuntu/hotel-management-backend/apps/tables/admin.py", line 3, in <module>
+    from .models import RestaurantTable, TableOrder, OrderItem, KitchenDisplayItem
+ImportError: cannot import name 'KitchenDisplayItem' from 'apps.tables.models' (/home/ubuntu/hotel-management-backend/apps/tables/models.py)
 (venv) ubuntu@hotel-management-server:~/hotel-management-backend$
